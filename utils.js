@@ -1,4 +1,4 @@
-var GraphUtils = (function() {
+const utils = (function() {
     
     // Prevents double wrapping
     function wrap (obj) {
@@ -16,10 +16,6 @@ var GraphUtils = (function() {
         } else {
             return coll.inRels(rel.type).sourceEnds(elementType);
         }
-    }
-
-    function getCollection(partialSelection) {
-        return partialSelection ? selection : model;
     }
 
     function getLevel(obj) {
@@ -152,7 +148,6 @@ var GraphUtils = (function() {
     }
 
     return {
-        getCollection: getCollection,
         getLevel: getLevel,
         getTransformedObjects: getTransformedObjects,
         getTransformingCapabilities: getTransformingCapabilities,

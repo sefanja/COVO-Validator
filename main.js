@@ -2,12 +2,12 @@ const PARTIAL_SELECTION = true;
 
 // 1. Load dependencies
 load(__DIR__ + 'config.js');
-load(__DIR__ + 'model-helpers.js');
 load(__DIR__ + 'rules.js');
 
 // 2. Prepare context (data preparation)
-var collection = GraphUtils.getCollection(PARTIAL_SELECTION);
-var context = {
+const collection = PARTIAL_SELECTION ? selection : model;
+const context = {
+    partialSelection: PARTIAL_SELECTION,
     elements: collection.find('element'),
     objects: collection.find(TYPES.object),
     capabilities: collection.find(TYPES.capability),
