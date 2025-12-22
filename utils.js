@@ -18,6 +18,25 @@ const utils = (function() {
         }
     }
 
+    function matchesRelationConfig(r, config) {
+        const reflexive = !config.sourceType && !config.targetType;
+        const rightRelationshipType = r.type === config.type;
+        const rightSourceType = reflexive && r.source.type === r.target.type || r.source.type === (!config.inverse ? config.sourceType : config.targetType)
+        const rightTargetType = reflexive && r.target.type === r.source.type || r.target.type === (!config.inverse ? config.targetType : config.sourceType)
+        return rightRelationshipType && rightSourceType && rightTargetType;
+    }
+
+    function filterRelation(coll, rel) {
+        const arr = (Array.isArray(rel) ? rel : [rel]);
+        const ret = coll.filter(r => arr.some(rl => matchesRelationConfig(r, rl)));
+        return ret;
+    }
+
+    function relationExists(rel, sourceObj, targetObj) {
+        const targetIDs = wrap(targetObj).map(e => e.id);
+        return sourceObj && targetObj && getEnds(sourceObj, rel, true).map(e => e.id).some(id => targetIDs.includes(id));
+    }
+
     function getLevel(obj) {
         return wrap(obj).prop(PROPERTIES.level);
     }
@@ -44,6 +63,22 @@ const utils = (function() {
 
     function getSupportingCapabilities(obj) {
         return getEnds(obj, RELATIONS.support, false);
+    }
+
+    function getSucceedingValueStreams(obj) {
+        return getEnds(obj, RELATIONS.succession, true);
+    }
+
+    function getPreceedingValueStreams(obj) {
+        return getEnds(obj, RELATIONS.succession, false);
+    }
+
+    function getMaterialSources(obj) {
+        return getEnds(obj, RELATIONS.mater, false);
+    }
+
+    function getMaterialTargets(obj) {
+        return getEnds(obj, RELATIONS.mater, true);
     }
 
     function getParents(obj) {
@@ -128,26 +163,27 @@ const utils = (function() {
         return false;
     }
 
-    /**
-     * Calculates the total number of unique top-level (L0) value streams
-     * a capability is manifested in (directly or indirectly).
-     */
     function getDirectlySupportedTopValueStreams(obj) {
-        const valueStreams = getManifestingValueStreams(obj);
-        const topStreamIDs = new Set();
-        valueStreams.each(vs => {
-            const root = getRoot(vs);
-            if (root) topStreamIDs.add(root.id);
-        });
-        return topStreamIDs;
+        const topValueStreams = $();
+        const topVSIDs = new Set(getManifestingValueStreams(obj).map(vs => getRoot(vs).id));
+        topVSIDs.forEach(id => topValueStreams.add($('#' + id)));
+        return topValueStreams;
     }
 
-    function filterToUsedLevels(coll, fun, relatedColl) {
-        const levels = new Set(fun(relatedColl).map(GraphUtils.getLevel));
-        return coll.filter(e => levels.has(GraphUtils.getLevel(e)));
+    function filterByExistingLevels(coll, fun, relatedColl) {
+        const levels = new Set(fun(relatedColl).map(getLevel));
+        return coll.filter(e => levels.has(getLevel(e)));
+    }
+
+    function intersect(coll1, coll2) {
+        const coll1IDs = wrap(coll1).map(e => e.id);
+        return wrap(coll2).filter(e => coll1IDs.includes(e.id));
     }
 
     return {
+        matchesRelationConfig: matchesRelationConfig,
+        filterRelation: filterRelation,
+        relationExists: relationExists,
         getLevel: getLevel,
         getTransformedObjects: getTransformedObjects,
         getTransformingCapabilities: getTransformingCapabilities,
@@ -155,6 +191,10 @@ const utils = (function() {
         getManifestedCapabilities: getManifestedCapabilities,
         getSupportedCapabilities: getSupportedCapabilities,
         getSupportingCapabilities: getSupportingCapabilities,
+        getSucceedingValueStreams: getSucceedingValueStreams,
+        getPreceedingValueStreams: getPreceedingValueStreams,
+        getMaterialSources: getMaterialSources,
+        getMaterialTargets: getMaterialTargets,
         getParents: getParents,
         getParent: getParent,
         getRoot: getRoot,
@@ -164,7 +204,8 @@ const utils = (function() {
         isOwnAncestor: isOwnAncestor,
         supportsValueStream: supportsValueStream,
         getDirectlySupportedTopValueStreams: getDirectlySupportedTopValueStreams,
-        filterToUsedLevels: filterToUsedLevels
+        filterByExistingLevels: filterByExistingLevels,
+        intersect: intersect
     }
 
 })();

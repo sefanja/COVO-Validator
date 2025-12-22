@@ -3,6 +3,7 @@ const PARTIAL_SELECTION = true;
 // 1. Load dependencies
 load(__DIR__ + 'config.js');
 load(__DIR__ + 'rules.js');
+load(__DIR__ + 'utils.js');
 
 // 2. Prepare context (data preparation)
 const collection = PARTIAL_SELECTION ? selection : model;
@@ -12,8 +13,12 @@ const context = {
     objects: collection.find(TYPES.object),
     capabilities: collection.find(TYPES.capability),
     valueStreams: collection.find(TYPES.valueStream),
-    relationships: collection.find('relationship')
+    relationships: collection.find('relationship'),
 };
+for (const [key, value] of Object.entries(RELATIONS)) {
+    context[key] = utils.filterRelation(collection.find('relationship'), value);
+}
+
 
 console.clear();
 console.log(`Starting COVO Validator to check ${context.elements.size()} elements and ${context.relationships.size()} relationships...`);

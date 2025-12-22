@@ -2,22 +2,34 @@ const VIOLATION_EXAMPLES = 5;
 
 // Metamodel definitions
 const TYPES = {
-    capability: 'capability',
+    capability: 'business-function',
     object: 'business-object',
-    valueStream: 'value-stream'
+    valueStream: 'business-process'
 };
 
 const RELATIONS = {
+    manifestation: {
+        type: 'serving-relationship',
+        sourceType: TYPES.capability,
+        targetType: TYPES.valueStream,
+        inverse: false
+    },
+    material: {
+        type: 'association-relationship',
+        sourceType: TYPES.object,
+        targetType: TYPES.object,
+        inverse: false
+    },
     refinement: {
         type: 'composition-relationship',
         sourceType: null, // identical to targetType
         targetType: null, // identical to sourceType
         inverse: false // default: from parent to child
     },
-    transformation: {
-        type: 'association-relationship',
-        sourceType: TYPES.capability,
-        targetType: TYPES.object,
+    succession: {
+        type: 'triggering-relationship',
+        sourceType: TYPES.valueStream,
+        targetType: TYPES.valueStream,
         inverse: false
     },
     support: {
@@ -26,11 +38,14 @@ const RELATIONS = {
         targetType: TYPES.capability,
         inverse: false
     },
-    manifestation: {
-        type: 'serving-relationship',
+    transformation: {
+        type: 'access-relationship',
         sourceType: TYPES.capability,
-        targetType: TYPES.valueStream,
+        targetType: TYPES.object,
         inverse: false
+    },
+    getHorizontalReflexiveRelations: function() {
+        return [this.material, this.succession, this.support];
     }
 };
 
