@@ -1,98 +1,109 @@
-const utils = (function() {
+var utils = (function() {
     
     // Prevents double wrapping
-    function wrap (obj) {
-        return obj && typeof obj.size === 'function' ? obj : $(obj);
+    function wrap(objectOrCollection) {
+        return objectOrCollection && typeof objectOrCollection.size === 'function' ? objectOrCollection : $(objectOrCollection);
     }
 
-    // Get elements related to obj
-    function getEnds(obj, rel, getTargets) {
-        const coll = wrap(obj);
-        const objType = coll.first() ? coll.first().type : null;
-        const elementType = (getTargets ? rel.targetType : rel.sourceType) || objType;
+    // TODO: selection vs. model
+    // function allOccurrences(objects, selectionIds) {
+    //     const collection = wrap(objects);
+    //     const occurrences = $();
+    //     collection.map(o => o.concept ? o.concept : o).filter(o => o).map(o => $(o).viewRefs()).filter(v => selectionIds.includes(v)).forEach(v => occurrences.add(v));
+    //     return occurrences;
+    // }
 
-        if (getTargets && !rel.inverse || !getTargets && rel.inverse) {
-            return coll.outRels(rel.type).targetEnds(elementType);
-        } else {
-            return coll.inRels(rel.type).sourceEnds(elementType);
+    const levelCache = {};
+    function getLevel(element) {
+        const concept = element.concept ? element.concept : element; // consider the complete model, not just the current selection // TODO: selection vs. model
+        if (levelCache[concept.id] !== undefined) return levelCache[concept.id];
+
+        var depth = 0;
+        var current = concept;
+        var visited = new Set();
+        
+        while (!visited.has(current.id)) {
+            visited.add(current.id);
+            var parent = getParent(current);
+            if (!parent) break;
+            current = parent;
+            depth++;
         }
+
+        levelCache[concept.id] = depth;
+        return depth;
     }
 
-    function matchesRelationConfig(r, config) {
-        const reflexive = !config.sourceType && !config.targetType;
-        const rightRelationshipType = r.type === config.type;
-        const rightSourceType = reflexive && r.source.type === r.target.type || r.source.type === (!config.inverse ? config.sourceType : config.targetType)
-        const rightTargetType = reflexive && r.target.type === r.source.type || r.target.type === (!config.inverse ? config.targetType : config.sourceType)
+    function getLevels(elements) {
+        return Array.from(new Set(wrap(elements).map(getLevel)));
+    }
+
+    function intersection(first, ...rest) {
+        let result = wrap(first);
+        for (const next of rest) {
+            const IDs = wrap(next).map(e => e.id);
+            result = result.filter(e => IDs.includes(e.id));
+        }
+        return result;
+    }
+
+    function overlapping(...concepts) {
+        return intersection(...concepts).size() > 0;
+    }
+
+    function filterByRelatedLevels(collection1, collection2) {
+        const levels = getLevels(intersection(collection1.rels().ends(), collection2));
+        return collection1.filter(e => levels.includes(getLevel(e)));
+    }
+
+    function matchesRelationKind(relationship, kind) {
+        const reflexive = !kind.sourceType && !kind.targetType;
+        const rightRelationshipType = relationship.type === kind.type;
+        const rightSourceType = reflexive && relationship.source.type === relationship.target.type || relationship.source.type === (!kind.inverse ? kind.sourceType : kind.targetType)
+        const rightTargetType = reflexive && relationship.target.type === relationship.source.type || relationship.target.type === (!kind.inverse ? kind.targetType : kind.sourceType)
         return rightRelationshipType && rightSourceType && rightTargetType;
     }
 
-    function filterRelation(coll, rel) {
-        const arr = (Array.isArray(rel) ? rel : [rel]);
-        const ret = coll.filter(r => arr.some(rl => matchesRelationConfig(r, rl)));
-        return ret;
+    function filterRelationshipsByKind(relationships, ...kind) {
+        return wrap(relationships).filter(r => kind.some(k => matchesRelationKind(r, k)));
     }
 
-    function relationExists(rel, sourceObj, targetObj) {
-        const targetIDs = wrap(targetObj).map(e => e.id);
-        return sourceObj && targetObj && getEnds(sourceObj, rel, true).map(e => e.id).some(id => targetIDs.includes(id));
+    function getEnds(relationKind, getTargets, elements) {
+        const collection = wrap(elements);
+        const elementType = collection.first() ? collection.first().type : null;
+        const configElementType = (getTargets ? relationKind.targetType : relationKind.sourceType) || elementType;
+
+        if (getTargets && !relationKind.inverse || !getTargets && relationKind.inverse) {
+            return collection.outRels(relationKind.type).targetEnds(configElementType);
+        } else {
+            return collection.inRels(relationKind.type).sourceEnds(configElementType);
+        }
     }
 
-    function getLevel(obj) {
-        return wrap(obj).prop(PROPERTIES.level);
+    function getTargets(relationKind, elements) {
+        return getEnds(relationKind, true, elements);
     }
 
-    function getTransformedObjects(obj) {
-        return getEnds(obj, RELATIONS.transformation, true);
+    function getSources(relationKind, elements) {
+        return getEnds(relationKind, false, elements);
     }
 
-    function getTransformingCapabilities(obj) {
-        return getEnds(obj, RELATIONS.transformation, false);
+    function relationshipExists(kind, sources, targets) {
+        return overlapping(getTargets(kind, sources), targets);
     }
 
-    function getManifestingValueStreams(obj) {
-        return getEnds(obj, RELATIONS.manifestation, true);
+    function getParent(element) {
+        return getSources(config.RELATIONS.refinement, element).first();
     }
 
-    function getManifestedCapabilities(obj) {
-        return getEnds(obj, RELATIONS.manifestation, false);
+    function hasMultipleParents(element) {
+        return getSources(config.RELATIONS.refinement, element).size() > 1;
     }
 
-    function getSupportedCapabilities(obj) {
-        return getEnds(obj, RELATIONS.support, true);
-    }
-
-    function getSupportingCapabilities(obj) {
-        return getEnds(obj, RELATIONS.support, false);
-    }
-
-    function getSucceedingValueStreams(obj) {
-        return getEnds(obj, RELATIONS.succession, true);
-    }
-
-    function getPreceedingValueStreams(obj) {
-        return getEnds(obj, RELATIONS.succession, false);
-    }
-
-    function getMaterialSources(obj) {
-        return getEnds(obj, RELATIONS.mater, false);
-    }
-
-    function getMaterialTargets(obj) {
-        return getEnds(obj, RELATIONS.mater, true);
-    }
-
-    function getParents(obj) {
-        return getEnds(obj, RELATIONS.refinement, false);
-    }
-
-    function getParent(obj) {
-        return getParents(obj).first();
-    }
-
-    function getRoot(obj) {
-        let current = obj;
-        const visited = new Set(); // prevent loops
-
+    function getRoot(element) {
+        const concept = element.concept ? element.concept : element; // consider the complete model, not just the current selection
+        let current = concept;
+        const visited = new Set();
         while (!visited.has(current.id)) {
             visited.add(current.id);
             const parent = getParent(current);
@@ -101,32 +112,17 @@ const utils = (function() {
         }
     }
 
-    function getChildren(obj) {
-        return getEnds(obj, RELATIONS.refinement, true);
+    function getChildren(element) {
+        return getTargets(config.RELATIONS.refinement, element);
     }
 
-    function isLeaf(obj) {
-        return getChildren(obj).size() === 0;
+    function isLeaf(element) {
+        return getChildren(element).size() === 0;
     }
 
-    function getAncestorCount(obj) {
-        var count = 0;
-        var current = obj;
-        var visited = new Set();
-        
-        while (!visited.has(current.id)) {
-            visited.add(current.id);
-            var parent = getParent(current);
-            if (!parent) break;
-            current = parent;
-            count++;
-        }
-        return count;
-    }
-
-    function isOwnAncestor(obj) {
-        let current = obj;
-        const initialId = obj.id;
+    function isOwnAncestor(element) {
+        let current = element;
+        const initialId = element.id;
         
         while (true) {
             const parent = getParent(current);
@@ -137,22 +133,17 @@ const utils = (function() {
         return false;
     }
 
-    // Checks if a capability (directly or transitively) supports a value stream
-    function supportsValueStream(obj) {
-        const queue = [obj];
-        const visited = new Set([obj.id]); // prevent loops
+    function manifestsAsValueStreamTransitively(element) {
+        const queue = [element];
+        const visited = new Set([element.id]);
 
         while (queue.length > 0) {
             const currentCapability = queue.shift();
 
-            // Direct manifestation by a value stream found
-            const valueStreams = getManifestingValueStreams(currentCapability);
-            if (valueStreams.size() > 0) {
-                return true;
-            }
+            const valueStreams = getTargets(config.RELATIONS.manifestation, currentCapability);
+            if (valueStreams.size() > 0) return true;
 
-            // Add supported capabilities to the queue
-            const supportedCapabilities = getSupportedCapabilities(currentCapability);
+            const supportedCapabilities = getTargets(config.RELATIONS.support, currentCapability);
             supportedCapabilities.each(supportedCap => {
                 if (!visited.has(supportedCap.id)) {
                     visited.add(supportedCap.id);
@@ -163,49 +154,130 @@ const utils = (function() {
         return false;
     }
 
-    function getDirectlySupportedTopValueStreams(obj) {
-        const topValueStreams = $();
-        const topVSIDs = new Set(getManifestingValueStreams(obj).map(vs => getRoot(vs).id));
-        topVSIDs.forEach(id => topValueStreams.add($('#' + id)));
-        return topValueStreams;
+    function crossesBoundary(r) {
+        return !overlapping(getRoot(r.source), getRoot(r.target));
     }
 
-    function filterByExistingLevels(coll, fun, relatedColl) {
-        const levels = new Set(fun(relatedColl).map(getLevel));
-        return coll.filter(e => levels.has(getLevel(e)));
+    function getDominantDepth(elements) {
+        const depthCounts = {};
+
+        elements.each(e => {
+            const d = getLevel(e);
+            depthCounts[d] = (depthCounts[d] || 0) + 1;
+        });
+
+        let dominantDepth = null;
+        let maxFound = 0;
+        for (let d in depthCounts) {
+            if (depthCounts[d] > maxFound) {
+                maxFound = depthCounts[d];
+                dominantDepth = Number(d);
+            }
+        }
+
+        return dominantDepth
     }
 
-    function intersect(coll1, coll2) {
-        const coll1IDs = wrap(coll1).map(e => e.id);
-        return wrap(coll2).filter(e => coll1IDs.includes(e.id));
+    function getTopLevelValueStreams(capabilities) {
+        const topLevelValueStreams = $();
+        getTargets(config.RELATIONS.manifestation, capabilities).each(e => topLevelValueStreams.add(getRoot(e)))
+        return topLevelValueStreams;
+    }
+
+    function connected(nodes) {
+        if (nodes.length <= 1) return true; // a group of 0 or 1 is connected by definition
+
+        const nodeIds = new Set(nodes.map(n => n.id)); // for quick lookup
+        
+        const visited = new Set();
+        const queue = [nodes[0]];
+        visited.add(nodes[0].id);
+        
+        while (queue.length > 0) {
+            const current = queue.shift();
+            const neighbors = [];
+            filterRelationshipsByKind($(current).rels(), ...config.RELATIONS.getHorizontalRelations()).ends().each(e => neighbors.push(e));
+            for (let i = 0; i < neighbors.length; i++) {
+                const neighbor = neighbors[i];
+                if (visited.has(neighbor.id)) continue;
+                if (nodeIds.has(neighbor.id)) {
+                    visited.add(neighbor.id);
+                    queue.push(neighbor);
+                }
+            }
+        }
+        
+        return visited.size === nodes.length;
+    }
+
+    function flash(collection) {
+        const flashColor = "#ff0000";
+        const flashSpeed = 250;
+        const flashCount = 3;
+
+        if (!collection || collection.size() === 0) return;
+
+        // 1. Sla de originele staat op (zowel vulling als lijn)
+        const originalStates = [];
+        collection.each(concept => {
+            originalStates.push({
+                concept: concept,
+                fill: concept.fillColor,
+                line: concept.lineColor,
+                lineWidth: concept.lineWidth
+            });
+        });
+
+        const display = org.eclipse.swt.widgets.Display.getDefault();
+
+        for (let i = 0; i < flashCount; i++) {
+            collection.each(function(c) {
+                if (c.type.indexOf("relationship") !== -1) {
+                    c.lineColor = flashColor;
+                    c.lineWidth = 5;
+                } else {
+                    c.fillColor = flashColor;
+                    c.lineColor = flashColor;
+                }
+            });
+
+            while (display.readAndDispatch());
+            java.lang.Thread.sleep(flashSpeed);
+
+            originalStates.forEach(function(state) {
+                state.concept.fillColor = state.fill;
+                state.concept.lineColor = state.line;
+                state.concept.lineWidth = state.lineWidth;
+            });
+
+            while (display.readAndDispatch());
+            java.lang.Thread.sleep(flashSpeed);
+        }
     }
 
     return {
-        matchesRelationConfig: matchesRelationConfig,
-        filterRelation: filterRelation,
-        relationExists: relationExists,
+        matchesRelationKind: matchesRelationKind,
+        filterRelationshipsByKind: filterRelationshipsByKind,
+        relationshipExists: relationshipExists,
         getLevel: getLevel,
-        getTransformedObjects: getTransformedObjects,
-        getTransformingCapabilities: getTransformingCapabilities,
-        getManifestingValueStreams: getManifestingValueStreams,
-        getManifestedCapabilities: getManifestedCapabilities,
-        getSupportedCapabilities: getSupportedCapabilities,
-        getSupportingCapabilities: getSupportingCapabilities,
-        getSucceedingValueStreams: getSucceedingValueStreams,
-        getPreceedingValueStreams: getPreceedingValueStreams,
-        getMaterialSources: getMaterialSources,
-        getMaterialTargets: getMaterialTargets,
-        getParents: getParents,
+        getLevels: getLevels,
+        getTargets: getTargets,
+        getSources: getSources,
+        hasMultipleParents: hasMultipleParents,
         getParent: getParent,
         getRoot: getRoot,
         getChildren: getChildren,
         isLeaf: isLeaf,
-        getAncestorCount: getAncestorCount,
         isOwnAncestor: isOwnAncestor,
-        supportsValueStream: supportsValueStream,
-        getDirectlySupportedTopValueStreams: getDirectlySupportedTopValueStreams,
-        filterByExistingLevels: filterByExistingLevels,
-        intersect: intersect
+        manifestsAsValueStreamTransitively: manifestsAsValueStreamTransitively,
+        filterByRelatedLevels: filterByRelatedLevels,
+        overlapping: overlapping,
+        crossesBoundary: crossesBoundary,
+        getDominantDepth: getDominantDepth,
+        getTopLevelValueStreams: getTopLevelValueStreams,
+        connected: connected,
+        flash: flash,
+        intersection: intersection
     }
 
 })();
