@@ -5,21 +5,12 @@ var utils = (function() {
         return objectOrCollection && typeof objectOrCollection.size === 'function' ? objectOrCollection : $(objectOrCollection);
     }
 
-    // TODO: selection vs. model
-    // function allOccurrences(objects, selectionIds) {
-    //     const collection = wrap(objects);
-    //     const occurrences = $();
-    //     collection.map(o => o.concept ? o.concept : o).filter(o => o).map(o => $(o).viewRefs()).filter(v => selectionIds.includes(v)).forEach(v => occurrences.add(v));
-    //     return occurrences;
-    // }
-
     const levelCache = {};
     function getLevel(element) {
-        const concept = element.concept ? element.concept : element; // consider the complete model, not just the current selection // TODO: selection vs. model
-        if (levelCache[concept.id] !== undefined) return levelCache[concept.id];
+        if (levelCache[element.id] !== undefined) return levelCache[element.id];
 
         var depth = 0;
-        var current = concept;
+        var current = element;
         var visited = new Set();
         
         while (!visited.has(current.id)) {
@@ -30,7 +21,7 @@ var utils = (function() {
             depth++;
         }
 
-        levelCache[concept.id] = depth;
+        levelCache[element.id] = depth;
         return depth;
     }
 
@@ -101,8 +92,7 @@ var utils = (function() {
     }
 
     function getRoot(element) {
-        const concept = element.concept ? element.concept : element; // consider the complete model, not just the current selection
-        let current = concept;
+        let current = element;
         const visited = new Set();
         while (!visited.has(current.id)) {
             visited.add(current.id);
@@ -210,10 +200,12 @@ var utils = (function() {
         return visited.size === nodes.length;
     }
 
-    function flash(collection) {
+    function flash(concepts) {
         const flashColor = "#ff0000";
         const flashSpeed = 250;
         const flashCount = 3;
+
+        const collection = concepts.objectRefs();
 
         if (!collection || collection.size() === 0) return;
 
