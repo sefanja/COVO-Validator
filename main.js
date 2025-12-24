@@ -28,7 +28,7 @@
         selection.find('relationship').map(r => r.concept).forEach(c => allRelationships.add(c));
     }
     const context = {
-        partialSelection: partialSelection,
+        partial: partialSelection,
         elements: allElements,
         valueStreams: allElements.filter(config.ELEMENTS.valueStream),
         capabilities: allElements.filter(config.ELEMENTS.capability),
@@ -40,8 +40,8 @@
         materialRelations: utils.filterRelationshipsByKind(allRelationships, config.RELATIONS.material),
         manifestationRelations: utils.filterRelationshipsByKind(allRelationships, config.RELATIONS.manifestation),
         transformationRelations: utils.filterRelationshipsByKind(allRelationships, config.RELATIONS.transformation),
-        horizontalRelations: utils.filterRelationshipsByKind(allRelationships, ...config.RELATIONS.getHorizontalRelations()),
-        horizontalReflexiveRelations: utils.filterRelationshipsByKind(allRelationships, ...config.RELATIONS.getHorizontalReflexiveRelations())
+        horizontalRelations: utils.filterRelationshipsByKind(allRelationships, ...config.getHorizontalRelationKinds()),
+        horizontalReflexiveRelations: utils.filterRelationshipsByKind(allRelationships, ...config.getHorizontalReflexiveRelationKinds())
     };
 
     console.clear();

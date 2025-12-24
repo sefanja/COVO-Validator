@@ -36,7 +36,23 @@ var rules = (function() {
                 name: 'Upward coherence',
                 statement: 'A non-hierarchical relationship between two elements requires a corresponding relationship between their parents (if any), provided the parents are distinct and with one exception: the relationship does not need to be propagated if the parent elements are both primary capabilities within the same top-level value stream.',
                 validate: function(context) {
-                    const violations = context.horizontalRelations.filter(r => {
+                    let horizontalRelations = context.horizontalRelations;
+                    if (context.partial) {
+                        const buckets = {};
+                        horizontalRelations.each(r => {
+                            const kind = config.getKind(r);
+                            const level = utils.getLevel(r.source);
+                            if (!buckets[kind]) buckets[kind] = new Set();
+                            buckets[kind].add(level);
+                        });
+                        horizontalRelations = horizontalRelations.filter(r => {
+                            const allLevels = buckets[config.getKind(r)];
+                            const thisLevel = utils.getLevel(r.source);
+                            return allLevels.has(thisLevel) && allLevels.has(thisLevel - 1);
+                        });
+                    }
+
+                    const violations = horizontalRelations.filter(r => {
                         if (utils.getLevel(r.source) === 0 && utils.getLevel(r.target) === 0) return false; // exclude top-level relations
 
                         const sameTopLevelValueStream = utils.overlapping(
@@ -64,7 +80,23 @@ var rules = (function() {
                 name: 'Downward coherence',
                 statement: 'A relationship between two parent elements requires that at least one pair of their respective children (if any) is also related.',
                 validate: function(context) {
-                    const violations = context.horizontalRelations.filter(r => {
+                    let horizontalRelations = context.horizontalRelations;
+                    if (context.partial) {
+                        const buckets = {};
+                        horizontalRelations.each(r => {
+                            const kind = config.getKind(r);
+                            const level = utils.getLevel(r.source);
+                            if (!buckets[kind]) buckets[kind] = new Set();
+                            buckets[kind].add(level);
+                        });
+                        horizontalRelations = horizontalRelations.filter(r => {
+                            const allLevels = buckets[config.getKind(r)];
+                            const thisLevel = utils.getLevel(r.source);
+                            return allLevels.has(thisLevel) && allLevels.has(thisLevel + 1);
+                        });
+                    }
+
+                    const violations = horizontalRelations.filter(r => {
                         if (utils.isLeaf(r.source) && utils.isLeaf(r.target)) return false;
                         if (utils.isLeaf(r.source) || utils.isLeaf(r.target)) return true;
 
@@ -85,7 +117,7 @@ var rules = (function() {
                 statement: 'Each business capability must transform exactly one business object, with one exception: at the leaf level it may transform multiple objects.',
                 validate: function(context) {
                     let capabilities = context.capabilities;
-                    if (context.partialSelection) capabilities = utils.filterByRelatedLevels(capabilities, context.objects);
+                    if (context.partial) capabilities = utils.filterByRelatedLevels(capabilities, context.objects);
 
                     const violations = capabilities.filter(e => {
                         const objectCount = utils.getTargets(config.RELATIONS.transformation, e).size();
@@ -101,7 +133,7 @@ var rules = (function() {
                 statement: 'Each business object must be transformed by exactly one business capability, with one exception: at the leaf level, an object may be transformed by multiple capabilities.',
                 validate: function(context) {
                     let objects = context.objects;
-                    if (context.partialSelection) objects = utils.filterByRelatedLevels(objects, context.capabilities);
+                    if (context.partial) objects = utils.filterByRelatedLevels(objects, context.capabilities);
 
                     const violations = objects.filter(e => {
                         const capabilityCount = utils.getSources(config.RELATIONS.transformation, e).size();
@@ -117,7 +149,7 @@ var rules = (function() {
                 statement: 'Each capability must either directly realize a value stream stage or support another capability that does.',
                 validate: function(context) {
                     let capabilities = context.capabilities;
-                    if (context.partialSelection) capabilities = utils.filterByRelatedLevels(capabilities, context.valueStreams);
+                    if (context.partial) capabilities = utils.filterByRelatedLevels(capabilities, context.valueStreams);
 
                     const violations = capabilities.filter(e => !utils.manifestsAsValueStreamTransitively(e));
 
@@ -130,7 +162,7 @@ var rules = (function() {
                 statement: 'Each value stream stage must be realized by exactly one capability.',
                 validate: function(context) {
                     let valueStreams = context.valueStreams;
-                    if (context.partialSelection) valueStreams = utils.filterByRelatedLevels(valueStreams, context.capabilities);
+                    if (context.partial) valueStreams = utils.filterByRelatedLevels(valueStreams, context.capabilities);
 
                     const violations = valueStreams.filter(e => utils.getSources(config.RELATIONS.manifestation, e).size() !== 1);
 
@@ -143,7 +175,7 @@ var rules = (function() {
                 statement: 'Each capability may manifest only once as primary per top-level value stream, with an exception for the leaf-level.',
                 validate: function(context) {
                     let capabilities = context.capabilities;
-                    if (context.partialSelection) capabilities = utils.filterByRelatedLevels(capabilities, context.valueStreams);
+                    if (context.partial) capabilities = utils.filterByRelatedLevels(capabilities, context.valueStreams);
 
                     const violations = capabilities.filter(e =>
                         !utils.isLeaf(e) // exclude the leaf-level
@@ -159,9 +191,9 @@ var rules = (function() {
                 statement: 'At each level, the descendants of a top-level element must form a connected graph.',
                 validate: function(context) {
                     let elements = context.elements;
-                    if (context.partialSelection) {
+                    if (context.partial) {
                         elements = $();
-                        config.RELATIONS.getHorizontalReflexiveRelations().forEach(kind => {
+                        config.getHorizontalReflexiveRelationKinds().forEach(kind => {
                             const levels = utils.getLevels(utils.filterRelationshipsByKind(context.relationships, kind).ends());
                             elements.add(context.elements.filter(e => e.type === kind.sourceType && levels.includes(utils.getLevel(e))));
                         });
@@ -197,7 +229,7 @@ var rules = (function() {
                 statement: 'Each support relationship between capabilities must have a corresponding material relationship between objects.',
                 validate: function(context) {
                     let supportRelations = context.supportRelations;
-                    if (context.partialSelection) {
+                    if (context.partial) {
                         const materialLevels = utils.getLevels(context.materialRelations.ends());
                         supportRelations = supportRelations.filter(r => materialLevels.includes(utils.getLevel(r.source)) || materialLevels.includes(utils.getLevel(r.target)));
                     }
@@ -218,7 +250,7 @@ var rules = (function() {
                 statement: 'Each succession relationship between value stream stages must have a corresponding material relationship between the objects transformed by their primary capabilities.',
                 validate: function(context) {
                     let successionRelations = context.successionRelations;
-                    if (context.partialSelection) {
+                    if (context.partial) {
                         const manifestationLevels = utils.getLevels(context.manifestationRelations.ends());
                         const transformationLevels = utils.getLevels(context.transformationRelations.ends());
                         const relevantLevels = manifestationLevels.filter(l => transformationLevels.includes(l)); // levels having a path from value stream to object
@@ -240,7 +272,17 @@ var rules = (function() {
                 name: 'Grounded dependencies',
                 statement: 'A material relationship between objects is only allowed if they are transformed (1) by the same capability, (2) by capabilities with a support relationship, or (3) by capabilities that are manifested by succeeding value stream stages.',
                 validate: function(context) {
-                    const violations = context.materialRelations.filter(r => {
+                    let materialRelations = context.materialRelations;
+                    if (context.partial) {
+                        const transformationLevels = utils.getLevels(context.transformationRelations.ends());
+                        const supportLevels = utils.getLevels(context.supportRelations.ends());
+                        const manifestationLevels = utils.getLevels(context.manifestationRelations.ends());
+                        const successionLevels = utils.getLevels(context.successionRelations.ends());
+                        const relevantLevels = transformationLevels.filter(l => supportLevels.includes(l) && manifestationLevels.includes(l) && successionLevels.includes(l));
+                        materialRelations = materialRelations.filter(r => relevantLevels.includes(utils.getLevel(r.source)));
+                    }
+
+                    const violations = materialRelations.filter(r => {
                         const srcObj = !config.RELATIONS.material.inverse ? r.source : r.target;
                         const tgtObj = !config.RELATIONS.material.inverse ? r.target : r.source;
 

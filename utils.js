@@ -186,7 +186,7 @@ var utils = (function() {
         while (queue.length > 0) {
             const current = queue.shift();
             const neighbors = [];
-            filterRelationshipsByKind($(current).rels(), ...config.RELATIONS.getHorizontalRelations()).ends().each(e => neighbors.push(e));
+            filterRelationshipsByKind($(current).rels(), ...config.getHorizontalRelationKinds()).ends().each(e => neighbors.push(e));
             for (let i = 0; i < neighbors.length; i++) {
                 const neighbor = neighbors[i];
                 if (visited.has(neighbor.id)) continue;
@@ -201,10 +201,8 @@ var utils = (function() {
     }
 
     function flash(concepts) {
-        const flashColor = "#ff0000";
-        const flashSpeed = 250;
-        const flashCount = 3;
-
+        if (!config.FLASH.enabled) return;
+        
         const collection = concepts.objectRefs();
 
         if (!collection || collection.size() === 0) return;
@@ -222,19 +220,19 @@ var utils = (function() {
 
         const display = org.eclipse.swt.widgets.Display.getDefault();
 
-        for (let i = 0; i < flashCount; i++) {
+        for (let i = 0; i < config.FLASH.count; i++) {
             collection.each(function(c) {
                 if (c.type.indexOf("relationship") !== -1) {
-                    c.lineColor = flashColor;
+                    c.lineColor = config.FLASH.color;
                     c.lineWidth = 5;
                 } else {
-                    c.fillColor = flashColor;
-                    c.lineColor = flashColor;
+                    c.fillColor = config.FLASH.color;
+                    c.lineColor = config.FLASH.color;
                 }
             });
 
             while (display.readAndDispatch());
-            java.lang.Thread.sleep(flashSpeed);
+            java.lang.Thread.sleep(config.FLASH.speed);
 
             originalStates.forEach(function(state) {
                 state.concept.fillColor = state.fill;
@@ -243,7 +241,7 @@ var utils = (function() {
             });
 
             while (display.readAndDispatch());
-            java.lang.Thread.sleep(flashSpeed);
+            java.lang.Thread.sleep(config.FLASH.speed);
         }
     }
 

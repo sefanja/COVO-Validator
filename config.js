@@ -2,7 +2,13 @@ var config = (function() {
 
     const VIOLATION_EXAMPLES = 5;
 
-    // Metamodel definitions
+    const FLASH = {
+        enabled: true,
+        color: '#ff0000',
+        speed: 250,
+        count: 3
+    };
+
     const ELEMENTS = {
         valueStream: 'business-process',
         capability: 'business-function',
@@ -46,18 +52,39 @@ var config = (function() {
             targetType: ELEMENTS.object,
             inverse: false
         },
-        getHorizontalRelations: function() {
-            return [this.succession, this.support, this.material, this.manifestation, this.transformation];
-        },
-        getHorizontalReflexiveRelations: function() {
-            return [this.material, this.succession, this.support];
-        }
     };
+
+    function getHorizontalRelationKinds() {
+        return Object.values(RELATIONS).filter(r => r.sourceType !== null || r.targetType !== null);
+    }
+
+    function getHorizontalReflexiveRelationKinds() {
+        return Object.values(RELATIONS).filter(r => r.sourceType !== null && r.sourceType === r.targetType);
+    }
+
+    function getKind(concept) {
+        if (concept.type.endsWith('-relationship')) {
+            return Object.entries(RELATIONS).filter(([key, r]) =>
+                concept.type === r.type && (
+                    r.sourceType === null && concept.source.type === concept.target.type
+                ) || (
+                    concept.source.type === (!r.inverse ? r.sourceType : r.targetType)
+                    && concept.target.type === (!r.inverse ? r.targetType : r.sourceType)
+                )
+            )[0][0];
+        } else {
+            return Object.entries(ELEMENTS).filter(([key, e]) => concept.type === e)[0][0];
+        }
+    }
 
     return {
         VIOLATION_EXAMPLES: VIOLATION_EXAMPLES,
+        FLASH: FLASH,
         ELEMENTS: ELEMENTS,
-        RELATIONS: RELATIONS
+        RELATIONS: RELATIONS,
+        getHorizontalRelationKinds: getHorizontalRelationKinds,
+        getHorizontalReflexiveRelationKinds: getHorizontalReflexiveRelationKinds,
+        getKind: getKind
     };
 
 })();
