@@ -14,6 +14,9 @@ var config = (function() {
     // material: from depender to dependee (e.g., directed association)
     // manifestation: from capability to value stream (e.g., serving or aggregation)
     // transformation: from capability to object (e.g., access or directed association)
+    //
+    // ANOTHER ASSUMPTION:
+    // The model consists of nothing else besides the configured TYPES and their relationships.
 
     const VIOLATION_EXAMPLES = 5;
 

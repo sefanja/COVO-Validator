@@ -4,8 +4,6 @@
  */
 var utils = (function() {
     
-    // --- INTERNAL HELPERS ---
-
     /**
      * Ensures an object or collection is always a jArchi collection.
      * @param {object|collection} objectOrCollection 
@@ -13,6 +11,16 @@ var utils = (function() {
      */
     function wrap(objectOrCollection) {
         return objectOrCollection && typeof objectOrCollection.size === 'function' ? objectOrCollection : $(objectOrCollection);
+    }
+
+    /**
+     * Tests whether some thing is an ArchiMate relationship.
+     * @param {*} thing 
+     * @returns {boolean}
+     */
+    function isRelationship(thing) {
+        if (!thing) return false;
+        return thing.type.endsWith('-relationship');
     }
 
     // --- SET OPERATIONS ---
@@ -134,12 +142,14 @@ var utils = (function() {
     }
 
     /**
-     * Returns an array of all unique levels present in a collection.
-     * @param {collection} elements 
+     * Returns an array of all unique levels present in a collection of elements and/or relationships.
+     * @param {collection} concepts 
      * @returns {number[]}
      */
-    function getLevels(elements) {
-        return Array.from(new Set(wrap(elements).map(getLevel)));
+    function getLevels(concepts) {
+        return Array.from(new Set(wrap(concepts).flatMap(c =>
+            isRelationship(c) ? [getLevel(c.source), getLevel(c.target)] : [getLevel(c)]
+        )));
     }
 
     /**
@@ -168,70 +178,76 @@ var utils = (function() {
     // --- RELATIONSHIPS & FILTERING (Horizontal) ---
 
     /**
-     * Gets all elements connected to the given elements via horizontal relationships
-     * (excluding refinement), optionally filtered by element type.
+     * Gets all elements connected to the given elements via relationships within the given scope,
+     * optionally filtered by element type.
      * @param {collection|object} elements - The starting elements.
      * @param {string} [endType] - Optional ArchiMate type to filter the results.
      * @returns {collection}
      */
-    function getRelated(elements, endType = '*') {
-        return wrap(elements).rels().not(config.TYPES.refinement).ends(endType);
+    function getRelated(elements, scope, endType = '*') {
+        const elementIds = new Set(wrap(elements).map(e => e.id));
+        return scope.filter(r => elementIds.has(r.source.id) || elementIds.has(r.target.id)).ends(endType);
     }
 
     /**
-     * Gets elements that are the sources of horizontal relationships pointing
-     * to the given targets, optionally filtered by source type.
+     * Gets elements that are the sources of relationships within the given scope,
+     * pointing to the given targets, optionally filtered by source type.
      * @param {collection|object} targets - The target elements.
+     * @param {collection} scope - Relationships within scope.
      * @param {string} [sourceType] - Optional ArchiMate type to filter the sources.
      * @returns {collection}
      */
-    function getSources(targets, sourceType) {
-        return wrap(targets).inRels().not(config.TYPES.refinement).sourceEnds(sourceType);
+    function getSources(targets, scope, sourceType = '*') {
+        const targetIds = new Set(wrap(targets).map(e => e.id));
+        return scope.filter(r => targetIds.has(r.target.id)).sourceEnds(sourceType);
     }
 
     /**
-     * Gets elements that are the targets of horizontal relationships originating
-     * from the given sources, optionally filtered by target type.
+     * Gets elements that are the targets of relationships within the given scope,
+     * originating from the given sources, optionally filtered by a target type.
      * @param {collection|object} sources - The source elements.
+     * @param {collection} scope - Relationships within scope.
      * @param {string} [targetType] - Optional ArchiMate type to filter the targets.
      * @returns {collection}
      */
-    function getTargets(sources, targetType) {
-        return wrap(sources).outRels().not(config.TYPES.refinement).targetEnds(targetType);
+    function getTargets(sources, scope, targetType = '*') {
+        const sourceIds = new Set(wrap(sources).map(e => e.id));
+        return scope.filter(r => sourceIds.has(r.source.id)).targetEnds(targetType);
     }
 
     /**
-     * Checks if a direct horizontal relationship exists between two sets of elements.
+     * Checks if a direct relationship within the given scope exists between two sets of elements.
      * @param {collection} collection1 
      * @param {collection} collection2 
+     * @param {collection} scope - Relationships within scope.
      * @returns {boolean}
      */
-    function isRelated(collection1, collection2) {
-        return isOverlapping(getRelated(collection1), collection2);
+    function isRelated(collection1, collection2, scope) {
+        return isOverlapping(getRelated(collection1, scope), collection2);
     }
 
     /**
-     * Uses Breadth-First Search (BFS) to find if a path exists from
-     * a source element, optionally through same-type elements, to an
-     * element of the given target type, via horizontal relations.
+     * Uses Breadth-First Search (BFS) to find if a path exists from a source element,
+     * optionally through same-type elements, to an element of the given target type,
+     * via relations within the given scope.
      * 
-     * Example: A capability supporting another capability that manifests
-     * as a value stream.
+     * Example: A capability supporting another capability that manifests as a value stream.
      * @param {object} sourceElement 
+     * @param {collection} scope - Relationships within scope.
      * @param {string} targetType 
      * @returns {boolean}
      */
-    function isRelatedTransitively(sourceElement, targetType) {
+    function isRelatedTransitively(sourceElement, scope, targetType) {
         const queue = [sourceElement];
         const visited = new Set([sourceElement.id]);
 
         while (queue.length > 0) {
             const currentElement = queue.shift();
 
-            const targetElements = getTargets(currentElement, targetType);
+            const targetElements = getTargets(currentElement, scope, targetType);
             if (targetElements.size() > 0) return true;
 
-            const relatedSameTypeElements = getTargets(currentElement, currentElement.type);
+            const relatedSameTypeElements = getTargets(currentElement, scope, currentElement.type);
             relatedSameTypeElements.each(e => {
                 if (!visited.has(e.id)) {
                     visited.add(e.id);
@@ -243,24 +259,10 @@ var utils = (function() {
     }
 
     /**
-     * Returns levels of collection1 that are connected to collection2.
-     */
-    function getRelatedLevels(collection1, collection2) {
-        return getLevels(getIntersection(getRelated(collection2), collection1));
-    }
-
-    /**
      * Filters a collection by allowed levels.
      */
     function filterByLevel(collection, levels) {
         return collection.filter(e => levels.includes(getLevel(e)));
-    }
-
-    /**
-     * Filters collection1 based on levels having a relationship with collection2.
-     */
-    function filterByRelatedLevels(collection1, collection2) {
-        return filterByLevel(collection1, getRelatedLevels(collection1, collection2));
     }
 
     /**
@@ -312,7 +314,7 @@ var utils = (function() {
     /**
      * Checks if a collection of nodes forms a connected graph.
      */
-    function isConnected(nodes) {
+    function isConnected(nodes, scope) {
         if (nodes.size() <= 1) return true;
 
         const nodeIds = new Set(nodes.map(n => n.id));
@@ -322,7 +324,7 @@ var utils = (function() {
         
         while (queue.length > 0) {
             const current = queue.shift();
-            getRelated(current).each(neighbor => {
+            getRelated(current, scope).each(neighbor => {
                 if (!visited.has(neighbor.id) && nodeIds.has(neighbor.id)) {
                     visited.add(neighbor.id);
                     queue.push(neighbor);
@@ -381,6 +383,7 @@ var utils = (function() {
     }
 
     return {
+        isRelationship: isRelationship,
         getIntersection: getIntersection,
         isOverlapping: isOverlapping,
         getParent: getParent,
@@ -397,10 +400,8 @@ var utils = (function() {
         getTargets: getTargets,
         isRelated: isRelated,
         isRelatedTransitively: isRelatedTransitively,
-        getRelatedLevels: getRelatedLevels,
         filterByLevel: filterByLevel,
         filterByLevelAdjacency: filterByLevelAdjacency,
-        filterByRelatedLevels: filterByRelatedLevels,
         crossesBoundary: crossesBoundary,
         isOwnAncestor: isOwnAncestor,
         isConnected: isConnected,

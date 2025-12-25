@@ -20,6 +20,9 @@
         allElements = model.find('element');
         allRelationships = model.find('relationship');
     } else {
+        // Important for developers to understand: The elements and relationships added to the context
+        // are limited by the selection while their properties are not. For example, elements.rels()
+        // may return relationships that are not present in the selection.
         allElements = $();
         selection.find('element').map(e => e.concept).forEach(c => allElements.add(c));
         allRelationships = $();
@@ -124,7 +127,7 @@
                 let count = 0;
                 res.violations.each(function(v) {
                     if(count < config.VIOLATION_EXAMPLES) {
-                        if (v.type.endsWith('-relationship')) {
+                        if (utils.isRelationship(v)) {
                             console.log('    - ' + v.source.name + ' --> ' + v.target.name);
                         } else {
                             console.log('    - ' + (v.name ? v.name : v.type));
