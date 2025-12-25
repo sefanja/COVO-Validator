@@ -1,5 +1,20 @@
 var config = (function() {
 
+    const TYPES = {
+        valueStream: 'business-process', // or value-stream
+        capability: 'business-function', // or capability
+        object: 'business-object',
+        refinement: 'composition-relationship' // or aggregation-relationship (IMPORTANT: the chosen relationship type may only be used for refinement)
+    };
+
+    // ASSUMED RELATIONSHIP DIRECTIONS:
+    // refinement: from parent to child (e.g., composition or aggregation)
+    // succession: from predecessor to successor (e.g., triggering or flow)
+    // support: from provider to consumer (e.g., serving)
+    // material: from depender to dependee (e.g., directed association)
+    // manifestation: from capability to value stream (e.g., serving or aggregation)
+    // transformation: from capability to object (e.g., access or directed association)
+
     const VIOLATION_EXAMPLES = 5;
 
     const FLASH = {
@@ -9,82 +24,10 @@ var config = (function() {
         count: 3
     };
 
-    const ELEMENTS = {
-        valueStream: 'business-process',
-        capability: 'business-function',
-        object: 'business-object'
-    };
-
-    const RELATIONS = {
-        refinement: {
-            type: 'composition-relationship',
-            sourceType: null, // identical to targetType
-            targetType: null, // identical to sourceType
-            inverse: false // default: from parent to child
-        },
-        succession: {
-            type: 'triggering-relationship',
-            sourceType: ELEMENTS.valueStream,
-            targetType: ELEMENTS.valueStream,
-            inverse: false
-        },
-        support: {
-            type: 'serving-relationship',
-            sourceType: ELEMENTS.capability,
-            targetType: ELEMENTS.capability,
-            inverse: false
-        },
-        material: {
-            type: 'association-relationship',
-            sourceType: ELEMENTS.object,
-            targetType: ELEMENTS.object,
-            inverse: false
-        },
-        manifestation: {
-            type: 'serving-relationship',
-            sourceType: ELEMENTS.capability,
-            targetType: ELEMENTS.valueStream,
-            inverse: false
-        },
-        transformation: {
-            type: 'access-relationship',
-            sourceType: ELEMENTS.capability,
-            targetType: ELEMENTS.object,
-            inverse: false
-        },
-    };
-
-    function getHorizontalRelationKinds() {
-        return Object.values(RELATIONS).filter(r => r.sourceType !== null || r.targetType !== null);
-    }
-
-    function getHorizontalReflexiveRelationKinds() {
-        return Object.values(RELATIONS).filter(r => r.sourceType !== null && r.sourceType === r.targetType);
-    }
-
-    function getKind(concept) {
-        if (concept.type.endsWith('-relationship')) {
-            return Object.entries(RELATIONS).filter(([key, r]) =>
-                concept.type === r.type && (
-                    r.sourceType === null && concept.source.type === concept.target.type
-                ) || (
-                    concept.source.type === (!r.inverse ? r.sourceType : r.targetType)
-                    && concept.target.type === (!r.inverse ? r.targetType : r.sourceType)
-                )
-            )[0][0];
-        } else {
-            return Object.entries(ELEMENTS).filter(([key, e]) => concept.type === e)[0][0];
-        }
-    }
-
     return {
+        TYPES: TYPES,
         VIOLATION_EXAMPLES: VIOLATION_EXAMPLES,
-        FLASH: FLASH,
-        ELEMENTS: ELEMENTS,
-        RELATIONS: RELATIONS,
-        getHorizontalRelationKinds: getHorizontalRelationKinds,
-        getHorizontalReflexiveRelationKinds: getHorizontalReflexiveRelationKinds,
-        getKind: getKind
+        FLASH: FLASH
     };
 
 })();

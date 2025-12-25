@@ -1,24 +1,22 @@
 (function() {
 
-    // Choose from options
-    const options = {
+    // Choose between options
+    const OPTIONS = {
         full: 'FULL: validate full model against all rules',
         partial: 'PARTIAL: validate selection against applicable rules'
     };
-    const choice = '' + window.promptSelection("Validate entire model or only the selected parts?", Object.values(options));
-    if (!Object.values(options).includes(choice)) return;
-    const partialSelection = choice === options.partial;
+    const choice = '' + window.promptSelection("Validate entire model or only the selected parts?", Object.values(OPTIONS));
+    if (!Object.values(OPTIONS).includes(choice)) return; // user chose to cancel
+    const partial = choice === OPTIONS.partial;
 
     // Load dependencies
     load(__DIR__ + 'config.js');
     load(__DIR__ + 'rules.js');
     load(__DIR__ + 'utils.js');
 
-    const activeRules = rules(config, utils);
-
     // Prepare context (data preparation)
     let allElements, allRelationships;
-    if (!partialSelection) {
+    if (!partial) {
         allElements = model.find('element');
         allRelationships = model.find('relationship');
     } else {
@@ -28,30 +26,57 @@
         selection.find('relationship').map(r => r.concept).forEach(c => allRelationships.add(c));
     }
     const context = {
-        partial: partialSelection,
+        partial: partial,
         elements: allElements,
-        valueStreams: allElements.filter(config.ELEMENTS.valueStream),
-        capabilities: allElements.filter(config.ELEMENTS.capability),
-        objects: allElements.filter(config.ELEMENTS.object),
+        valueStreams: allElements.filter(config.TYPES.valueStream),
+        capabilities: allElements.filter(config.TYPES.capability),
+        objects: allElements.filter(config.TYPES.object),
         relationships: allRelationships,
-        refinementRelations: utils.filterRelationshipsByKind(allRelationships, config.RELATIONS.refinement),
-        successionRelations: utils.filterRelationshipsByKind(allRelationships, config.RELATIONS.succession),
-        supportRelations: utils.filterRelationshipsByKind(allRelationships, config.RELATIONS.support),
-        materialRelations: utils.filterRelationshipsByKind(allRelationships, config.RELATIONS.material),
-        manifestationRelations: utils.filterRelationshipsByKind(allRelationships, config.RELATIONS.manifestation),
-        transformationRelations: utils.filterRelationshipsByKind(allRelationships, config.RELATIONS.transformation),
-        horizontalRelations: utils.filterRelationshipsByKind(allRelationships, ...config.getHorizontalRelationKinds()),
-        horizontalReflexiveRelations: utils.filterRelationshipsByKind(allRelationships, ...config.getHorizontalReflexiveRelationKinds())
+        refinementRelations: $(),
+        successionRelations: $(),
+        supportRelations: $(),
+        materialRelations: $(),
+        manifestationRelations: $(),
+        transformationRelations: $(),
+        horizontalRelations: $(),
+        horizontalReflexiveRelations: $(),
     };
 
+    allRelationships.each(r => {
+        if (r.type === config.TYPES.refinement) {
+            context.refinementRelations.add(r);
+        } else {
+            context.horizontalRelations.add(r);
+
+            const s = r.source.type;
+            const t = r.target.type;
+
+            if (s === t) {
+                context.horizontalReflexiveRelations.add(r);
+
+                if (s === config.TYPES.valueStream) {
+                    context.successionRelations.add(r);
+                } else if (s === config.TYPES.capability) {
+                    context.supportRelations.add(r);
+                } else if (s === config.TYPES.object) {
+                    context.materialRelations.add(r);
+                }
+            } else if (s === config.TYPES.capability && t === config.TYPES.valueStream) {
+                context.manifestationRelations.add(r);
+            } else if (s === config.TYPES.capability && t === config.TYPES.object) {
+                context.transformationRelations.add(r);
+            }
+        }
+    });
+
+    // Execution engine
     console.clear();
     console.log(`Starting COVO Validator to check ${context.elements.size()} elements and ${context.relationships.size()} relationships...`);
 
-    // Execution engine
     const results = [];
     const summary = { passed: [], failed: [], totalViolations: 0 };
 
-    activeRules.forEach(rule => {
+    rules.forEach(rule => {
         // Validate
         const result = rule.validate(context);
         

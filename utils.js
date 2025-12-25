@@ -1,11 +1,119 @@
+/**
+ * COVO Utility Module for jArchi
+ * Contains reusable functions for hierarchy analysis, graph traversal, and visual feedback.
+ */
 var utils = (function() {
     
-    // Prevents double wrapping
+    // --- INTERNAL HELPERS ---
+
+    /**
+     * Ensures an object or collection is always a jArchi collection.
+     * @param {object|collection} objectOrCollection 
+     * @returns {collection} jArchi collection
+     */
     function wrap(objectOrCollection) {
         return objectOrCollection && typeof objectOrCollection.size === 'function' ? objectOrCollection : $(objectOrCollection);
     }
 
+    // --- SET OPERATIONS ---
+
+    /**
+     * Returns the intersection of two or more collections.
+     * @param {collection} first - The base collection.
+     * @param {...collection} rest - Other collections to compare.
+     * @returns {collection}
+     */
+    function getIntersection(first, ...rest) {
+        let result = wrap(first);
+        for (const next of rest) {
+            const IDs = wrap(next).map(e => e.id);
+            result = result.filter(e => IDs.includes(e.id));
+        }
+        return result;
+    }
+
+    /**
+     * Checks if two or more collections overlap.
+     * @param {...collection} concepts 
+     * @returns {boolean}
+     */
+    function isOverlapping(...concepts) {
+        return getIntersection(...concepts).size() > 0;
+    }
+
+    // --- HIERARCHY & STRUCTURE (Vertical) ---
+
+    /**
+     * Returns the immediate parent via the defined refinement relationship.
+     * @param {object} element 
+     * @returns {object|undefined}
+     */
+    function getParent(element) {
+        return wrap(element).inRels(config.TYPES.refinement).sourceEnds().first();
+    }
+
+    /**
+     * Checks if an element has more than one parent via refinement.
+     * @param {object} element 
+     * @returns {boolean}
+     */
+    function hasMultipleParents(element) {
+        return wrap(element).inRels(config.TYPES.refinement).sourceEnds().size() > 1;
+    }
+
+    /**
+     * Returns all immediate children via refinement relationships.
+     * @param {object} element 
+     * @returns {collection}
+     */
+    function getChildren(element) {
+        return wrap(element).outRels(config.TYPES.refinement).targetEnds();
+    }
+
+    /**
+     * Checks if an element is a leaf (no children via refinement).
+     * @param {object} element 
+     * @returns {boolean}
+     */
+    function isLeaf(element) {
+        return getChildren(element).size() === 0;
+    }
+
+    /**
+     * Finds the top-level element (root) in the hierarchy.
+     * @param {object} element 
+     * @returns {object} The root element.
+     */
+    function getRoot(element) {
+        let current = element;
+        const visited = new Set();
+        while (!visited.has(current.id)) {
+            visited.add(current.id);
+            const parent = getParent(current);
+            if (!parent) return current;
+            current = parent;
+        }
+    }
+
+    /**
+     * Returns unique roots for a collection of elements.
+     * @param {collection} elements 
+     * @returns {collection}
+     */
+    function getRoots(elements) {
+        const roots = $();
+        wrap(elements).each(e => roots.add(getRoot(e)));
+        return roots;
+    }
+
+    // --- DEPTH & LEVELS ---
+
     const levelCache = {};
+    /**
+     * Determines the hierarchical depth (0 = root). Results are cached.
+     * @param {object} element 
+     * @returns {number}
+     */
     function getLevel(element) {
         if (levelCache[element.id] !== undefined) return levelCache[element.id];
 
@@ -25,132 +133,22 @@ var utils = (function() {
         return depth;
     }
 
+    /**
+     * Returns an array of all unique levels present in a collection.
+     * @param {collection} elements 
+     * @returns {number[]}
+     */
     function getLevels(elements) {
         return Array.from(new Set(wrap(elements).map(getLevel)));
     }
 
-    function intersection(first, ...rest) {
-        let result = wrap(first);
-        for (const next of rest) {
-            const IDs = wrap(next).map(e => e.id);
-            result = result.filter(e => IDs.includes(e.id));
-        }
-        return result;
-    }
-
-    function overlapping(...concepts) {
-        return intersection(...concepts).size() > 0;
-    }
-
-    function filterByRelatedLevels(collection1, collection2) {
-        const levels = getLevels(intersection(collection1.rels().ends(), collection2));
-        return collection1.filter(e => levels.includes(getLevel(e)));
-    }
-
-    function matchesRelationKind(relationship, kind) {
-        const reflexive = !kind.sourceType && !kind.targetType;
-        const rightRelationshipType = relationship.type === kind.type;
-        const rightSourceType = reflexive && relationship.source.type === relationship.target.type || relationship.source.type === (!kind.inverse ? kind.sourceType : kind.targetType)
-        const rightTargetType = reflexive && relationship.target.type === relationship.source.type || relationship.target.type === (!kind.inverse ? kind.targetType : kind.sourceType)
-        return rightRelationshipType && rightSourceType && rightTargetType;
-    }
-
-    function filterRelationshipsByKind(relationships, ...kind) {
-        return wrap(relationships).filter(r => kind.some(k => matchesRelationKind(r, k)));
-    }
-
-    function getEnds(relationKind, getTargets, elements) {
-        const collection = wrap(elements);
-        const elementType = collection.first() ? collection.first().type : null;
-        const configElementType = (getTargets ? relationKind.targetType : relationKind.sourceType) || elementType;
-
-        if (getTargets && !relationKind.inverse || !getTargets && relationKind.inverse) {
-            return collection.outRels(relationKind.type).targetEnds(configElementType);
-        } else {
-            return collection.inRels(relationKind.type).sourceEnds(configElementType);
-        }
-    }
-
-    function getTargets(relationKind, elements) {
-        return getEnds(relationKind, true, elements);
-    }
-
-    function getSources(relationKind, elements) {
-        return getEnds(relationKind, false, elements);
-    }
-
-    function relationshipExists(kind, sources, targets) {
-        return overlapping(getTargets(kind, sources), targets);
-    }
-
-    function getParent(element) {
-        return getSources(config.RELATIONS.refinement, element).first();
-    }
-
-    function hasMultipleParents(element) {
-        return getSources(config.RELATIONS.refinement, element).size() > 1;
-    }
-
-    function getRoot(element) {
-        let current = element;
-        const visited = new Set();
-        while (!visited.has(current.id)) {
-            visited.add(current.id);
-            const parent = getParent(current);
-            if (!parent) return current;
-            current = parent;
-        }
-    }
-
-    function getChildren(element) {
-        return getTargets(config.RELATIONS.refinement, element);
-    }
-
-    function isLeaf(element) {
-        return getChildren(element).size() === 0;
-    }
-
-    function isOwnAncestor(element) {
-        let current = element;
-        const initialId = element.id;
-        
-        while (true) {
-            const parent = getParent(current);
-            if (!parent) break;
-            if (parent.id === initialId) return true;
-            current = parent;
-        }
-        return false;
-    }
-
-    function manifestsAsValueStreamTransitively(element) {
-        const queue = [element];
-        const visited = new Set([element.id]);
-
-        while (queue.length > 0) {
-            const currentCapability = queue.shift();
-
-            const valueStreams = getTargets(config.RELATIONS.manifestation, currentCapability);
-            if (valueStreams.size() > 0) return true;
-
-            const supportedCapabilities = getTargets(config.RELATIONS.support, currentCapability);
-            supportedCapabilities.each(supportedCap => {
-                if (!visited.has(supportedCap.id)) {
-                    visited.add(supportedCap.id);
-                    queue.push(supportedCap);
-                }
-            });
-        }
-        return false;
-    }
-
-    function crossesBoundary(r) {
-        return !overlapping(getRoot(r.source), getRoot(r.target));
-    }
-
+    /**
+     * Determines the most frequent level in a collection.
+     * @param {collection} elements 
+     * @returns {number|null}
+     */
     function getDominantDepth(elements) {
         const depthCounts = {};
-
         elements.each(e => {
             const d = getLevel(e);
             depthCounts[d] = (depthCounts[d] || 0) + 1;
@@ -164,50 +162,154 @@ var utils = (function() {
                 dominantDepth = Number(d);
             }
         }
-
-        return dominantDepth
+        return dominantDepth;
     }
 
-    function getTopLevelValueStreams(capabilities) {
-        const topLevelValueStreams = $();
-        getTargets(config.RELATIONS.manifestation, capabilities).each(e => topLevelValueStreams.add(getRoot(e)))
-        return topLevelValueStreams;
+    // --- RELATIONSHIPS & FILTERING (Horizontal) ---
+
+    /**
+     * Checks if a direct relationship exists between two sets of elements.
+     * @param {collection} collection1 
+     * @param {collection} collection2 
+     * @returns {boolean}
+     */
+    function isRelated(collection1, collection2) {
+        return isOverlapping(wrap(collection1).rels().ends(), collection2);
     }
 
-    function connected(nodes) {
-        if (nodes.length <= 1) return true; // a group of 0 or 1 is connected by definition
+    /**
+     * Uses Breadth-First Search (BFS) to find if a path exists from 
+     * a source element, optionally through same-type elements, to an
+     * element of the given target type, via horizontal relations.
+     * 
+     * Example: A capability supporting another capability that manifests
+     * as a value stream.
+     * @param {object} sourceElement 
+     * @param {string} targetType 
+     * @returns {boolean}
+     */
+    function isRelatedTransitively(sourceElement, targetType) {
+        const queue = [sourceElement];
+        const visited = new Set([sourceElement.id]);
 
-        const nodeIds = new Set(nodes.map(n => n.id)); // for quick lookup
-        
+        while (queue.length > 0) {
+            const currentElement = queue.shift();
+
+            const targetElements = $(currentElement).outRels().targetEnds(targetType);
+            if (targetElements.size() > 0) return true;
+
+            const relatedSameTypeElements = $(currentElement).outRels().targetEnds(currentElement.type);
+            relatedSameTypeElements.each(e => {
+                if (!visited.has(e.id)) {
+                    visited.add(e.id);
+                    queue.push(e);
+                }
+            });
+        }
+        return false;
+    }
+
+    /**
+     * Returns levels of collection1 that are connected to collection2.
+     */
+    function getRelatedLevels(collection1, collection2) {
+        return getLevels(getIntersection(collection2.rels().not(config.TYPES.refinement).ends(), collection1));
+    }
+
+    /**
+     * Filters a collection by allowed levels.
+     */
+    function filterByLevel(collection, levels) {
+        return collection.filter(e => levels.includes(getLevel(e)));
+    }
+
+    /**
+     * Filters collection1 based on levels having a relationship with collection2.
+     */
+    function filterByRelatedLevels(collection1, collection2) {
+        return filterByLevel(collection1, getRelatedLevels(collection1, collection2));
+    }
+
+    /**
+     * Filters relationships for partial validation based on level adjacency.
+     * @param {collection} relationships 
+     * @param {number} offset (-1 for parent layer, 1 for child layer)
+     */
+    function filterByLevelAdjacency(relationships, offset) {
+        const buckets = {};
+        relationships.each(r => {
+            const key = r.source.type + "->" + r.target.type;
+            if (!buckets[key]) buckets[key] = new Set();
+            buckets[key].add(getLevel(r.source));
+        });
+
+        return relationships.filter(r => {
+            const key = r.source.type + "->" + r.target.type;
+            const currentLevel = getLevel(r.source);
+            return buckets[key].has(currentLevel) && buckets[key].has(currentLevel + offset);
+        });
+    }
+
+    /**
+     * Checks if a relation crosses boundaries between different root elements.
+     * @param {object} r - The relationship.
+     * @returns {boolean}
+     */
+    function crossesBoundary(r) {
+        return getRoot(r.source).id !== getRoot(r.target).id;
+    }
+
+    // --- GRAPH TOPOLOGY ---
+
+    /**
+     * Checks for cyclic references in the hierarchy.
+     */
+    function isOwnAncestor(element) {
+        let current = element;
+        const initialId = element.id;
+        while (true) {
+            const parent = getParent(current);
+            if (!parent) break;
+            if (parent.id === initialId) return true;
+            current = parent;
+        }
+        return false;
+    }
+
+    /**
+     * Checks if a collection of nodes forms a connected graph.
+     */
+    function isConnected(nodes) {
+        if (nodes.size() <= 1) return true;
+
+        const nodeIds = new Set(nodes.map(n => n.id));
         const visited = new Set();
-        const queue = [nodes[0]];
-        visited.add(nodes[0].id);
+        const queue = [nodes.first()];
+        visited.add(nodes.first().id);
         
         while (queue.length > 0) {
             const current = queue.shift();
-            const neighbors = [];
-            filterRelationshipsByKind($(current).rels(), ...config.getHorizontalRelationKinds()).ends().each(e => neighbors.push(e));
-            for (let i = 0; i < neighbors.length; i++) {
-                const neighbor = neighbors[i];
-                if (visited.has(neighbor.id)) continue;
-                if (nodeIds.has(neighbor.id)) {
+            $(current).rels().not(config.TYPES.refinement).ends().each(neighbor => {
+                if (!visited.has(neighbor.id) && nodeIds.has(neighbor.id)) {
                     visited.add(neighbor.id);
                     queue.push(neighbor);
                 }
-            }
+            });
         }
-        
-        return visited.size === nodes.length;
+        return visited.size === nodes.size();
     }
 
+    // --- UI & FEEDBACK ---
+
+    /**
+     * Flashes elements/relationships in views.
+     */
     function flash(concepts) {
         if (!config.FLASH.enabled) return;
-        
-        const collection = concepts.objectRefs();
 
+        const collection = concepts.objectRefs();
         if (!collection || collection.size() === 0) return;
 
-        // 1. Sla de originele staat op (zowel vulling als lijn)
         const originalStates = [];
         collection.each(concept => {
             originalStates.push({
@@ -246,28 +348,27 @@ var utils = (function() {
     }
 
     return {
-        matchesRelationKind: matchesRelationKind,
-        filterRelationshipsByKind: filterRelationshipsByKind,
-        relationshipExists: relationshipExists,
-        getLevel: getLevel,
-        getLevels: getLevels,
-        getTargets: getTargets,
-        getSources: getSources,
-        hasMultipleParents: hasMultipleParents,
+        getIntersection: getIntersection,
+        isOverlapping: isOverlapping,
         getParent: getParent,
-        getRoot: getRoot,
+        hasMultipleParents: hasMultipleParents,
         getChildren: getChildren,
         isLeaf: isLeaf,
-        isOwnAncestor: isOwnAncestor,
-        manifestsAsValueStreamTransitively: manifestsAsValueStreamTransitively,
-        filterByRelatedLevels: filterByRelatedLevels,
-        overlapping: overlapping,
-        crossesBoundary: crossesBoundary,
+        getRoot: getRoot,
+        getRoots: getRoots,
+        getLevel: getLevel,
+        getLevels: getLevels,
         getDominantDepth: getDominantDepth,
-        getTopLevelValueStreams: getTopLevelValueStreams,
-        connected: connected,
-        flash: flash,
-        intersection: intersection
-    }
+        isRelated: isRelated,
+        isRelatedTransitively: isRelatedTransitively,
+        getRelatedLevels: getRelatedLevels,
+        filterByLevel: filterByLevel,
+        filterByLevelAdjacency: filterByLevelAdjacency,
+        filterByRelatedLevels: filterByRelatedLevels,
+        crossesBoundary: crossesBoundary,
+        isOwnAncestor: isOwnAncestor,
+        isConnected: isConnected,
+        flash: flash
+    };
 
 })();
