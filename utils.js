@@ -168,17 +168,50 @@ var utils = (function() {
     // --- RELATIONSHIPS & FILTERING (Horizontal) ---
 
     /**
-     * Checks if a direct relationship exists between two sets of elements.
+     * Gets all elements connected to the given elements via horizontal relationships
+     * (excluding refinement), optionally filtered by element type.
+     * @param {collection|object} elements - The starting elements.
+     * @param {string} [endType] - Optional ArchiMate type to filter the results.
+     * @returns {collection}
+     */
+    function getRelated(elements, endType = '*') {
+        return wrap(elements).rels().not(config.TYPES.refinement).ends(endType);
+    }
+
+    /**
+     * Gets elements that are the sources of horizontal relationships pointing
+     * to the given targets, optionally filtered by source type.
+     * @param {collection|object} targets - The target elements.
+     * @param {string} [sourceType] - Optional ArchiMate type to filter the sources.
+     * @returns {collection}
+     */
+    function getSources(targets, sourceType) {
+        return wrap(targets).inRels().not(config.TYPES.refinement).sourceEnds(sourceType);
+    }
+
+    /**
+     * Gets elements that are the targets of horizontal relationships originating
+     * from the given sources, optionally filtered by target type.
+     * @param {collection|object} sources - The source elements.
+     * @param {string} [targetType] - Optional ArchiMate type to filter the targets.
+     * @returns {collection}
+     */
+    function getTargets(sources, targetType) {
+        return wrap(sources).outRels().not(config.TYPES.refinement).targetEnds(targetType);
+    }
+
+    /**
+     * Checks if a direct horizontal relationship exists between two sets of elements.
      * @param {collection} collection1 
      * @param {collection} collection2 
      * @returns {boolean}
      */
     function isRelated(collection1, collection2) {
-        return isOverlapping(wrap(collection1).rels().ends(), collection2);
+        return isOverlapping(getRelated(collection1), collection2);
     }
 
     /**
-     * Uses Breadth-First Search (BFS) to find if a path exists from 
+     * Uses Breadth-First Search (BFS) to find if a path exists from
      * a source element, optionally through same-type elements, to an
      * element of the given target type, via horizontal relations.
      * 
@@ -195,10 +228,10 @@ var utils = (function() {
         while (queue.length > 0) {
             const currentElement = queue.shift();
 
-            const targetElements = $(currentElement).outRels().targetEnds(targetType);
+            const targetElements = getTargets(currentElement, targetType);
             if (targetElements.size() > 0) return true;
 
-            const relatedSameTypeElements = $(currentElement).outRels().targetEnds(currentElement.type);
+            const relatedSameTypeElements = getTargets(currentElement, currentElement.type);
             relatedSameTypeElements.each(e => {
                 if (!visited.has(e.id)) {
                     visited.add(e.id);
@@ -213,7 +246,7 @@ var utils = (function() {
      * Returns levels of collection1 that are connected to collection2.
      */
     function getRelatedLevels(collection1, collection2) {
-        return getLevels(getIntersection(collection2.rels().not(config.TYPES.refinement).ends(), collection1));
+        return getLevels(getIntersection(getRelated(collection2), collection1));
     }
 
     /**
@@ -289,7 +322,7 @@ var utils = (function() {
         
         while (queue.length > 0) {
             const current = queue.shift();
-            $(current).rels().not(config.TYPES.refinement).ends().each(neighbor => {
+            getRelated(current).each(neighbor => {
                 if (!visited.has(neighbor.id) && nodeIds.has(neighbor.id)) {
                     visited.add(neighbor.id);
                     queue.push(neighbor);
@@ -359,6 +392,9 @@ var utils = (function() {
         getLevel: getLevel,
         getLevels: getLevels,
         getDominantDepth: getDominantDepth,
+        getRelated: getRelated,
+        getSources: getSources,
+        getTargets: getTargets,
         isRelated: isRelated,
         isRelatedTransitively: isRelatedTransitively,
         getRelatedLevels: getRelatedLevels,

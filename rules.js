@@ -50,8 +50,8 @@ var rules = (function() {
                     // Primary capabilities of same top-level value stream
                     if (r.source.type === config.TYPES.capability && r.target.type === config.TYPES.capability) {
                         const sameTopLevelValueStream = utils.isOverlapping(
-                            utils.getRoots($(r.source).outRels().targetEnds(config.TYPES.valueStream)),
-                            utils.getRoots($(r.target).outRels().targetEnds(config.TYPES.valueStream))
+                            utils.getRoots(utils.getTargets(r.source, config.TYPES.valueStream)),
+                            utils.getRoots(utils.getTargets(r.target, config.TYPES.valueStream))
                         );
                         if (sameTopLevelValueStream) return false;
                     }
@@ -95,7 +95,7 @@ var rules = (function() {
                 if (context.partial) capabilities = utils.filterByRelatedLevels(capabilities, context.objects);
 
                 const violations = capabilities.filter(e => {
-                    const objectCount = $(e).outRels().targetEnds(config.TYPES.object).size();
+                    const objectCount = utils.getTargets(e, config.TYPES.object).size();
                     return utils.isLeaf(e) ? (objectCount < 1) : (objectCount !== 1);
                 });
 
@@ -111,7 +111,7 @@ var rules = (function() {
                 if (context.partial) objects = utils.filterByRelatedLevels(objects, context.capabilities);
 
                 const violations = objects.filter(e => {
-                    const capabilityCount = $(e).inRels().sourceEnds(config.TYPES.capability).size();
+                    const capabilityCount = utils.getSources(e, config.TYPES.capability).size();
                     return utils.isLeaf(e) ? (capabilityCount < 1) : (capabilityCount !== 1);
                 });
 
@@ -139,7 +139,7 @@ var rules = (function() {
                 let valueStreams = context.valueStreams;
                 if (context.partial) valueStreams = utils.filterByRelatedLevels(valueStreams, context.capabilities);
 
-                const violations = valueStreams.filter(e => $(e).inRels().sourceEnds(config.TYPES.capability).size() !== 1);
+                const violations = valueStreams.filter(e => utils.getSources(e, config.TYPES.capability).size() !== 1);
 
                 return {id: this.id, violations: violations};
             }
@@ -153,7 +153,7 @@ var rules = (function() {
                 if (context.partial) capabilities = utils.filterByRelatedLevels(capabilities, context.valueStreams);
 
                 const violations = capabilities.filter(e => {
-                    const valueStreams = $(e).outRels().targetEnds(config.TYPES.valueStream);
+                    const valueStreams = utils.getTargets(e, config.TYPES.valueStream);
                     return !utils.isLeaf(e) && valueStreams.size() > utils.getRoots(valueStreams);
                 });
 
@@ -212,8 +212,8 @@ var rules = (function() {
 
                 const violations = supportRelations.filter(r =>
                     !utils.isRelated(
-                        $(r.target).outRels().targetEnds(config.TYPES.object),
-                        $(r.source).outRels().targetEnds(config.TYPES.object)
+                        utils.getTargets(r.target, config.TYPES.object),
+                        utils.getTargets(r.source, config.TYPES.object)
                     )
                 );
 
@@ -235,8 +235,8 @@ var rules = (function() {
 
                 const violations = successionRelations.filter(r =>
                     !utils.isRelated(
-                        $(r.target).inRels().sourceEnds(config.TYPES.capability).outRels().targetEnds(config.TYPES.object),
-                        $(r.source).inRels().sourceEnds(config.TYPES.capability).outRels().targetEnds(config.TYPES.object)
+                        utils.getTargets(utils.getSources(r.target, config.TYPES.capability), config.TYPES.object),
+                        utils.getTargets(utils.getSources(r.source, config.TYPES.capability), config.TYPES.object)
                     )
                 );
 
@@ -259,16 +259,16 @@ var rules = (function() {
                 }
 
                 const violations = materialRelations.filter(r => {
-                    const srcCaps = $(r.source).inRels().sourceEnds(config.TYPES.capability);
-                    const tgtCaps = $(r.target).inRels().sourceEnds(config.TYPES.capability);
+                    const srcCaps = utils.getSources(r.source, config.TYPES.capability);
+                    const tgtCaps = utils.getSources(r.target, config.TYPES.capability);
                     if (utils.isOverlapping(srcCaps, tgtCaps)) return false; // (1) same capability
 
-                    const supportedCaps = tgtCaps.outRels().ends(config.TYPES.capability);
+                    const supportedCaps = utils.getTargets(tgtCaps, config.TYPES.capability);
                     if (utils.isOverlapping(supportedCaps, srcCaps)) return false; // (2) support relation
 
-                    const srcStages = srcCaps.outRels().targetEnds(config.TYPES.valueStreams);
-                    const tgtStages = tgtCaps.outRels().targetEnds(config.TYPES.valueStreams);
-                    const sucStages = tgtStages.outRels().targetEnds(config.TYPES.valueStream);
+                    const srcStages = utils.getTargets(srcCaps, config.TYPES.valueStreams);
+                    const tgtStages = utils.getTargets(tgtCaps, config.TYPES.valueStreams);
+                    const sucStages = utils.getTargets(tgtStages, config.TYPES.valueStream);
                     if (utils.isOverlapping(sucStages, srcStages)) return false; // (3) succeeding stages
 
                     return true;

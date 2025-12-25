@@ -117,7 +117,7 @@
         results.forEach(res => {
             if (res.violationCount > 0) {
                 console.log();
-                console.log('[!!] ' + res.id + ' - ' + res.name + ': ' + res.violationCount);
+                console.log('[!!] ' + res.id + ' - ' + res.name + ': ' + res.violationCount + ' violations');
                 console.log('----------------------------------------------------------------------');
                 console.log('  * Statement: ' + res.statement);
                 console.log('  * Examples of violating items:');
