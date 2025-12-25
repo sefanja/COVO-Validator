@@ -22,7 +22,7 @@
     } else {
         // Important for developers to understand: The elements and relationships added to the context
         // are limited by the selection while their properties are not. For example, elements.rels()
-        // may return relationships that are not present in the selection.
+        // returns all relationships, including those not present in the current selection.
         allElements = $();
         selection.find('element').map(e => e.concept).forEach(c => allElements.add(c));
         allRelationships = $();

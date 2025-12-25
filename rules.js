@@ -56,13 +56,13 @@ var rules = (function() {
                     const transformationLevels = utils.getLevels(context.transformationRelations);
                     const manifestationLevels = utils.getLevels(context.manifestationRelations);
                     scope = utils.filterByLevelAdjacency(scope, -1).filter(r =>{
-                        const currentLevel = utils.getLevel(r.source);
-                        // these extra relationships are needed to check for the shared top-level value stream exception
+                        const currentLevel = utils.getLevel(r);
+                        // can we check for the top-level value stream exception?
                         if (r.source.type === config.TYPES.capability && r.target.type === config.TYPES.capability) {
-                            return manifestationLevels.includes(currentLevel);
+                            return manifestationLevels.has(currentLevel);
                         }
                         if (r.source.type === config.TYPES.object && r.target.type === config.TYPES.object) {
-                            return manifestationLevels.includes(currentLevel) && transformationLevels.includes(currentLevel);
+                            return manifestationLevels.has(currentLevel) && transformationLevels.has(currentLevel);
                         }
                         return true;
                     });
@@ -119,7 +119,7 @@ var rules = (function() {
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(r => {
-                    // No leafs or only one leaf
+                    // Both leafs or one leaf
                     if (utils.isLeaf(r.source) && utils.isLeaf(r.target)) return false;
                     if (utils.isLeaf(r.source) || utils.isLeaf(r.target)) return true;
 
@@ -283,7 +283,7 @@ var rules = (function() {
 
                 if (context.partial) {
                     const materialLevels = utils.getLevels(context.materialRelations);
-                    scope = scope.filter(r => materialLevels.includes(utils.getLevel(r.source)));
+                    scope = scope.filter(r => materialLevels.has(utils.getLevel(r)));
                 }
 
                 // IDENTIFY VIOLATIONS
@@ -309,8 +309,8 @@ var rules = (function() {
                 if (context.partial) {
                     const manifestationLevels = utils.getLevels(context.manifestationRelations);
                     const transformationLevels = utils.getLevels(context.transformationRelations);
-                    const relevantLevels = manifestationLevels.filter(l => transformationLevels.includes(l));
-                    scope = scope.filter(r => relevantLevels.includes(utils.getLevel(r.source)))
+                    const relevantLevels = new Set(Array.from(manifestationLevels).filter(l => transformationLevels.has(l)));
+                    scope = scope.filter(r => relevantLevels.has(utils.getLevel(r)));
                 }
 
                 // IDENTIFY VIOLATIONS
@@ -338,8 +338,8 @@ var rules = (function() {
                     const supportLevels = utils.getLevels(context.supportRelations);
                     const manifestationLevels = utils.getLevels(context.manifestationRelations);
                     const successionLevels = utils.getLevels(context.successionRelations);
-                    const relevantLevels = transformationLevels.filter(l => supportLevels.includes(l) && manifestationLevels.includes(l) && successionLevels.includes(l));
-                    scope = scope.filter(r => relevantLevels.includes(utils.getLevel(r.source)));
+                    const relevantLevels = new Set(Array.from(transformationLevels).filter(l => supportLevels.has(l) && manifestationLevels.has(l) && successionLevels.has(l)));
+                    scope = scope.filter(r => relevantLevels.has(utils.getLevel(r)));
                 }
 
                 // IDENTIFY VIOLATIONS

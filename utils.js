@@ -6,7 +6,7 @@ var utils = (function() {
     
     /**
      * Ensures an object or collection is always a jArchi collection.
-     * @param {object|collection} objectOrCollection 
+     * @param {object|collection} objectOrCollection
      * @returns {collection} jArchi collection
      */
     function wrap(objectOrCollection) {
@@ -15,7 +15,7 @@ var utils = (function() {
 
     /**
      * Tests whether some thing is an ArchiMate relationship.
-     * @param {*} thing 
+     * @param {*} thing
      * @returns {boolean}
      */
     function isRelationship(thing) {
@@ -42,7 +42,7 @@ var utils = (function() {
 
     /**
      * Checks if two or more collections overlap.
-     * @param {...collection} concepts 
+     * @param {...collection} concepts
      * @returns {boolean}
      */
     function isOverlapping(...concepts) {
@@ -53,7 +53,7 @@ var utils = (function() {
 
     /**
      * Returns the immediate parent via the defined refinement relationship.
-     * @param {object} element 
+     * @param {object} element
      * @returns {object|undefined}
      */
     function getParent(element) {
@@ -62,7 +62,7 @@ var utils = (function() {
 
     /**
      * Checks if an element has more than one parent via refinement.
-     * @param {object} element 
+     * @param {object} element
      * @returns {boolean}
      */
     function hasMultipleParents(element) {
@@ -71,7 +71,7 @@ var utils = (function() {
 
     /**
      * Returns all immediate children via refinement relationships.
-     * @param {object} element 
+     * @param {object} element
      * @returns {collection}
      */
     function getChildren(element) {
@@ -80,7 +80,7 @@ var utils = (function() {
 
     /**
      * Checks if an element is a leaf (no children via refinement).
-     * @param {object} element 
+     * @param {object} element
      * @returns {boolean}
      */
     function isLeaf(element) {
@@ -91,7 +91,7 @@ var utils = (function() {
      * An element is considered 'floating' if it has no parent (acting as a root)
      * but also has no children (acting as a leaf). This is typical during 
      * early modelling phases.
-     * @param {object} element 
+     * @param {object} element
      * @returns {boolean}
      */
     function isFloating(element) {
@@ -100,7 +100,7 @@ var utils = (function() {
 
     /**
      * Finds the top-level element (root) in the hierarchy.
-     * @param {object} element 
+     * @param {object} element
      * @returns {object} The root element.
      */
     function getRoot(element) {
@@ -116,7 +116,7 @@ var utils = (function() {
 
     /**
      * Returns unique roots for a collection of elements.
-     * @param {collection} elements 
+     * @param {collection} elements
      * @returns {collection}
      */
     function getRoots(elements) {
@@ -130,10 +130,12 @@ var utils = (function() {
     const levelCache = {};
     /**
      * Determines the hierarchical depth (0 = root). Results are cached.
-     * @param {object} element 
+     * @param {object} concept
      * @returns {number}
      */
-    function getLevel(element) {
+    function getLevel(concept) {
+        const element = isRelationship(concept) ? concept.source : concept; // a relationships's level is determined by its source end
+
         if (levelCache[element.id] !== undefined) return levelCache[element.id];
 
         var depth = 0;
@@ -153,19 +155,17 @@ var utils = (function() {
     }
 
     /**
-     * Returns an array of all unique levels present in a collection of elements and/or relationships.
-     * @param {collection} concepts 
-     * @returns {number[]}
+     * Returns a set of levels present in a collection of elements and/or relationships.
+     * @param {collection} concepts
+     * @returns {Set<number>}
      */
     function getLevels(concepts) {
-        return Array.from(new Set(wrap(concepts).flatMap(c =>
-            isRelationship(c) ? [getLevel(c.source), getLevel(c.target)] : [getLevel(c)]
-        )));
+        return new Set(wrap(concepts).map(getLevel));
     }
 
     /**
      * Determines the most frequent level in a collection.
-     * @param {collection} elements 
+     * @param {collection} elements
      * @returns {number|null}
      */
     function getDominantDepth(elements) {
@@ -192,6 +192,7 @@ var utils = (function() {
      * Gets all elements connected to the given elements via relationships within the given scope,
      * optionally filtered by element type.
      * @param {collection|object} elements - The starting elements.
+     * @param {collection} scope - Relationships within scope.
      * @param {string} [endType] - Optional ArchiMate type to filter the results.
      * @returns {collection}
      */
@@ -228,8 +229,8 @@ var utils = (function() {
 
     /**
      * Checks if a direct relationship within the given scope exists between two sets of elements.
-     * @param {collection} collection1 
-     * @param {collection} collection2 
+     * @param {collection} collection1
+     * @param {collection} collection2
      * @param {collection} scope - Relationships within scope.
      * @returns {boolean}
      */
@@ -243,9 +244,9 @@ var utils = (function() {
      * via relations within the given scope.
      * 
      * Example: A capability supporting another capability that manifests as a value stream.
-     * @param {object} sourceElement 
+     * @param {object} sourceElement
      * @param {collection} scope - Relationships within scope.
-     * @param {string} targetType 
+     * @param {string} targetType
      * @returns {boolean}
      */
     function isRelatedTransitively(sourceElement, scope, targetType) {
@@ -271,44 +272,41 @@ var utils = (function() {
 
     /**
      * Filters a collection by allowed levels.
+     * @param {collection}
+     * @param {Set<number>}
+     * @returns {collection}
      */
     function filterByLevel(collection, levels) {
-        return collection.filter(e => levels.includes(getLevel(e)));
+        return collection.filter(e => levels.has(getLevel(e)));
     }
 
     /**
      * Filters relationships for partial validation based on level adjacency.
-     * @param {collection} relationships 
+     * @param {collection} relationships
      * @param {number} offset (-1 for parent layer, 1 for child layer)
+     * @returns {collection}
      */
     function filterByLevelAdjacency(relationships, offset) {
         const buckets = {};
         relationships.each(r => {
             const key = r.source.type + "->" + r.target.type;
             if (!buckets[key]) buckets[key] = new Set();
-            buckets[key].add(getLevel(r.source));
+            buckets[key].add(getLevel(r));
         });
 
         return relationships.filter(r => {
             const key = r.source.type + "->" + r.target.type;
-            const currentLevel = getLevel(r.source);
+            const currentLevel = getLevel(r);
             return buckets[key].has(currentLevel) && buckets[key].has(currentLevel + offset);
         });
-    }
-
-    /**
-     * Checks if a relation crosses boundaries between different root elements.
-     * @param {object} r - The relationship.
-     * @returns {boolean}
-     */
-    function crossesBoundary(r) {
-        return getRoot(r.source).id !== getRoot(r.target).id;
     }
 
     // --- GRAPH TOPOLOGY ---
 
     /**
      * Checks for cyclic references in the hierarchy.
+     * @param {object} element
+     * @returns {boolean}
      */
     function isOwnAncestor(element) {
         let current = element;
@@ -324,6 +322,9 @@ var utils = (function() {
 
     /**
      * Checks if a collection of nodes forms a connected graph.
+     * @param {collection} nodes - Elements.
+     * @param {collection} scope - Relationships within scope.
+     * @returns {boolean}
      */
     function isConnected(nodes, scope) {
         if (nodes.size() <= 1) return true;
@@ -349,6 +350,7 @@ var utils = (function() {
 
     /**
      * Flashes elements/relationships in views.
+     * @param {collection} concepts
      */
     function flash(concepts) {
         if (!config.FLASH.enabled) return;
@@ -395,7 +397,6 @@ var utils = (function() {
 
     return {
         isRelationship: isRelationship,
-        getIntersection: getIntersection,
         isOverlapping: isOverlapping,
         getParent: getParent,
         hasMultipleParents: hasMultipleParents,
@@ -407,14 +408,12 @@ var utils = (function() {
         getLevel: getLevel,
         getLevels: getLevels,
         getDominantDepth: getDominantDepth,
-        getRelated: getRelated,
         getSources: getSources,
         getTargets: getTargets,
         isRelated: isRelated,
         isRelatedTransitively: isRelatedTransitively,
         filterByLevel: filterByLevel,
         filterByLevelAdjacency: filterByLevelAdjacency,
-        crossesBoundary: crossesBoundary,
         isOwnAncestor: isOwnAncestor,
         isConnected: isConnected,
         flash: flash
