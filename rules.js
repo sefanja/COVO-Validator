@@ -6,7 +6,12 @@ var rules = (function() {
             name: 'Unique parent',
             statement: 'Each element has at most one parent.',
             validate: function(context) {
-                const violations = context.elements.filter(utils.hasMultipleParents);
+                // DETERMINE SCOPE
+                const scope = context.elements.clone();
+
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(utils.hasMultipleParents);
+
                 return {id: this.id, violations: violations};
             }
         },
@@ -15,7 +20,12 @@ var rules = (function() {
             name: 'Acyclicity',
             statement: 'An element cannot be its own ancestor.',
             validate: function(context) {
-                const violations = context.elements.filter(utils.isOwnAncestor);
+                // DETERMINE SCOPE
+                const scope = context.elements.clone();
+
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(utils.isOwnAncestor);
+
                 return {id: this.id, violations: violations};
             }
         },
@@ -24,9 +34,13 @@ var rules = (function() {
             name: 'Consistent refinement depth',
             statement: 'All leaf elements (elements without children) must have the same number of ancestors.',
             validate: function(context) {
-                const leafs = context.elements.filter(utils.isLeaf);
-                const dominantDepth = utils.getDominantDepth(leafs);
-                const violations = leafs.filter(e => utils.getLevel(e) !== dominantDepth); // blame the exceptions
+                // DETERMINE SCOPE
+                const scope = context.elements.filter(utils.isLeaf);
+
+                // IDENTIFY VIOLATIONS
+                const dominantDepth = utils.getDominantDepth(scope);
+                const violations = scope.filter(e => utils.getLevel(e) !== dominantDepth); // blame the exceptions
+
                 return {id: this.id, violations: violations};
             }
         },
@@ -35,11 +49,13 @@ var rules = (function() {
             name: 'Upward coherence',
             statement: 'A non-hierarchical relationship between two elements requires a corresponding relationship between their parents (if any), provided the parents are distinct and with one exception: the relationship does not need to be propagated if the parent elements are both primary capabilities within the same top-level value stream.', // TODO: ...or objects transformed by those primary capabilities.
             validate: function(context) {
-                let horizontalRelations = context.horizontalRelations;
+                // DETERMINE SCOPE
+                let scope = context.horizontalRelations.clone();
+
                 if (context.partial) {
                     const transformationLevels = utils.getLevels(context.transformationRelations);
                     const manifestationLevels = utils.getLevels(context.manifestationRelations);
-                    horizontalRelations = utils.filterByLevelAdjacency(horizontalRelations, -1).filter(r =>{
+                    scope = utils.filterByLevelAdjacency(scope, -1).filter(r =>{
                         const currentLevel = utils.getLevel(r.source);
                         // these extra relationships are needed to check for the shared top-level value stream exception
                         if (r.source.type === config.TYPES.capability && r.target.type === config.TYPES.capability) {
@@ -52,7 +68,8 @@ var rules = (function() {
                     });
                 }
 
-                const violations = horizontalRelations.filter(r => {
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(r => {
                     const pSrc = utils.getParent(r.source);
                     const pTgt = utils.getParent(r.target);
 
@@ -95,10 +112,13 @@ var rules = (function() {
             name: 'Downward coherence',
             statement: 'A relationship between two parent elements requires that at least one pair of their respective children (if any) is also related.',
             validate: function(context) {
-                let horizontalRelations = context.horizontalRelations;
-                if (context.partial) horizontalRelations = utils.filterByLevelAdjacency(horizontalRelations, 1);
+                // DETERMINE SCOPE
+                let scope = context.horizontalRelations.clone();
 
-                const violations = horizontalRelations.filter(r => {
+                if (context.partial) scope = utils.filterByLevelAdjacency(scope, 1);
+
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(r => {
                     // No leafs or only one leaf
                     if (utils.isLeaf(r.source) && utils.isLeaf(r.target)) return false;
                     if (utils.isLeaf(r.source) || utils.isLeaf(r.target)) return true;
@@ -119,10 +139,13 @@ var rules = (function() {
             name: 'Capability impact',
             statement: 'Each business capability must transform exactly one business object, with one exception: at the leaf level it may transform multiple objects.',
             validate: function(context) {
-                let capabilities = context.capabilities;
-                if (context.partial) capabilities = utils.filterByLevel(capabilities, utils.getLevels(context.transformationRelations));
+                // DETERMINE SCOPE
+                let scope = context.capabilities.clone();
 
-                const violations = capabilities.filter(e => {
+                if (context.partial) scope = utils.filterByLevel(scope, utils.getLevels(context.transformationRelations));
+
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(e => {
                     const objectCount = utils.getTargets(e, context.transformationRelations).size();
                     return utils.isLeaf(e) ? (objectCount < 1) : (objectCount !== 1);
                 });
@@ -135,10 +158,13 @@ var rules = (function() {
             name: 'Object relevance',
             statement: 'Each business object must be transformed by exactly one business capability, with one exception: at the leaf level, an object may be transformed by multiple capabilities.',
             validate: function(context) {
-                let objects = context.objects;
-                if (context.partial) objects = utils.filterByLevel(objects, utils.getLevels(context.transformationRelations));
+                // DETERMINE SCOPE
+                let scope = context.objects.clone();
 
-                const violations = objects.filter(e => {
+                if (context.partial) scope = utils.filterByLevel(scope, utils.getLevels(context.transformationRelations));
+
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(e => {
                     const capabilityCount = utils.getSources(e, context.transformationRelations).size();
                     return utils.isLeaf(e) ? (capabilityCount < 1) : (capabilityCount !== 1);
                 });
@@ -151,10 +177,13 @@ var rules = (function() {
             name: 'Capability purpose',
             statement: 'Each capability must either directly realize a value stream stage or support another capability that does.',
             validate: function(context) {
-                let capabilities = context.capabilities;
-                if (context.partial) capabilities = utils.filterByLevel(capabilities, utils.getLevels(context.manifestationRelations));
+                // DETERMINE SCOPE
+                let scope = context.capabilities.clone();
 
-                const violations = capabilities.filter(e => !utils.isRelatedTransitively(e, context.horizontalRelations, config.TYPES.valueStream));
+                if (context.partial) scope = utils.filterByLevel(scope, utils.getLevels(context.manifestationRelations));
+
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(e => !utils.isRelatedTransitively(e, context.horizontalRelations, config.TYPES.valueStream));
 
                 return {id: this.id, violations: violations};
             }
@@ -164,10 +193,13 @@ var rules = (function() {
             name: 'Traceability',
             statement: 'Each value stream stage must be realized by exactly one capability.',
             validate: function(context) {
-                let valueStreams = context.valueStreams;
-                if (context.partial) valueStreams = utils.filterByLevel(valueStreams, utils.getLevels(context.manifestationRelations))
+                // DETERMINE SCOPE
+                let scope = context.valueStreams.clone();
 
-                const violations = valueStreams.filter(e => utils.getSources(e, context.manifestationRelations).size() !== 1);
+                if (context.partial) scope = utils.filterByLevel(scope, utils.getLevels(context.manifestationRelations));
+
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(e => utils.getSources(e, context.manifestationRelations).size() !== 1);
 
                 return {id: this.id, violations: violations};
             }
@@ -177,10 +209,13 @@ var rules = (function() {
             name: 'Exclusive manifestation',
             statement: 'Each capability may manifest only once as primary per top-level value stream, with an exception for the leaf-level.',
             validate: function(context) {
-                let capabilities = context.capabilities;
-                if (context.partial) capabilities = utils.filterByLevel(capabilities, utils.getLevels(context.manifestationRelations));
+                // DETERMINE SCOPE
+                let scope = context.capabilities.clone();
 
-                const violations = capabilities.filter(e => {
+                if (context.partial) scope = utils.filterByLevel(scope, utils.getLevels(context.manifestationRelations));
+
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(e => {
                     const valueStreams = utils.getTargets(e, context.manifestationRelations);
                     return !utils.isLeaf(e) && valueStreams.size() > utils.getRoots(valueStreams).size();
                 });
@@ -193,19 +228,22 @@ var rules = (function() {
             name: 'Cohesion',
             statement: 'At each level, the descendants of a top-level element must form a connected graph.',
             validate: function(context) {
-                let elements = context.elements;
+                // DETERMINE SCOPE
+                let scope = context.elements.clone();
+
                 if (context.partial) {
-                    elements = $();
+                    scope = $();
                     Object.values(config.TYPES).forEach(type => {
-                        elements.add(utils.filterByLevel(
+                        scope.add(utils.filterByLevel(
                             context.elements.filter(type),
                             utils.getLevels(context.horizontalReflexiveRelations.filter(r => r.source.type === type))
                         ));
                     });
                 }
 
+                // IDENTIFY VIOLATIONS
                 const buckets = {};
-                elements.each(e => {
+                scope.each(e => {
                     const key = utils.getRoot(e).id + '_L' + utils.getLevel(e);
                     if (!buckets[key]) buckets[key] = $();
                     buckets[key].add(e);
@@ -224,7 +262,14 @@ var rules = (function() {
             name: 'Compartmentalization',
             statement: 'A relationship between elements of the same type is not allowed if they belong to different top-level elements.',
             validate: function(context) {
-                const violations = context.horizontalReflexiveRelations.filter(r => utils.getRoot(r.source).id !== utils.getRoot(r.target).id);
+                // DETERMINE SCOPE
+                let scope = context.horizontalReflexiveRelations.clone();
+
+                if (context.partial) scope = scope.filter(r => !utils.isFloating(r.source) && !utils.isFloating(r.target));
+
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(r => utils.getRoot(r.source).id !== utils.getRoot(r.target).id);
+
                 return {id: this.id, violations: violations};
             }
         },
@@ -233,13 +278,16 @@ var rules = (function() {
             name: 'Object dependency',
             statement: 'Each support relationship between capabilities must have a corresponding material relationship between objects.',
             validate: function(context) {
-                let supportRelations = context.supportRelations;
+                // DETERMINE SCOPE
+                let scope = context.supportRelations.clone();
+
                 if (context.partial) {
                     const materialLevels = utils.getLevels(context.materialRelations);
-                    supportRelations = supportRelations.filter(r => materialLevels.includes(utils.getLevel(r.source)));
+                    scope = scope.filter(r => materialLevels.includes(utils.getLevel(r.source)));
                 }
 
-                const violations = supportRelations.filter(r =>
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(r =>
                     !utils.isRelated(
                         utils.getTargets(r.target, context.transformationRelations),
                         utils.getTargets(r.source, context.transformationRelations),
@@ -255,15 +303,18 @@ var rules = (function() {
             name: 'Object flow',
             statement: 'Each succession relationship between value stream stages must have a corresponding material relationship between the objects transformed by their primary capabilities.',
             validate: function(context) {
-                let successionRelations = context.successionRelations;
+                // DETERMINE SCOPE
+                let scope = context.successionRelations.clone();
+
                 if (context.partial) {
                     const manifestationLevels = utils.getLevels(context.manifestationRelations);
                     const transformationLevels = utils.getLevels(context.transformationRelations);
                     const relevantLevels = manifestationLevels.filter(l => transformationLevels.includes(l));
-                    successionRelations = successionRelations.filter(r => relevantLevels.includes(utils.getLevel(r.source)))
+                    scope = scope.filter(r => relevantLevels.includes(utils.getLevel(r.source)))
                 }
 
-                const violations = successionRelations.filter(r =>
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(r =>
                     !utils.isRelated(
                         utils.getTargets(utils.getSources(r.target, context.manifestationRelations), context.transformationRelations),
                         utils.getTargets(utils.getSources(r.source, context.manifestationRelations), context.transformationRelations),
@@ -279,17 +330,20 @@ var rules = (function() {
             name: 'Grounded dependencies',
             statement: 'A material relationship between objects is only allowed if they are transformed (1) by the same capability, (2) by capabilities with a support relationship, or (3) by capabilities that are manifested by succeeding value stream stages.',
             validate: function(context) {
-                let materialRelations = context.materialRelations;
+                // DETERMINE SCOPE
+                let scope = context.materialRelations.clone();
+
                 if (context.partial) {
                     const transformationLevels = utils.getLevels(context.transformationRelations);
                     const supportLevels = utils.getLevels(context.supportRelations);
                     const manifestationLevels = utils.getLevels(context.manifestationRelations);
                     const successionLevels = utils.getLevels(context.successionRelations);
                     const relevantLevels = transformationLevels.filter(l => supportLevels.includes(l) && manifestationLevels.includes(l) && successionLevels.includes(l));
-                    materialRelations = materialRelations.filter(r => relevantLevels.includes(utils.getLevel(r.source)));
+                    scope = scope.filter(r => relevantLevels.includes(utils.getLevel(r.source)));
                 }
 
-                const violations = materialRelations.filter(r => {
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(r => {
                     const srcCaps = utils.getSources(r.source, context.transformationRelations);
                     const tgtCaps = utils.getSources(r.target, context.transformationRelations);
                     if (utils.isOverlapping(srcCaps, tgtCaps)) return false; // (1) same capability

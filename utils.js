@@ -88,6 +88,17 @@ var utils = (function() {
     }
 
     /**
+     * An element is considered 'floating' if it has no parent (acting as a root)
+     * but also has no children (acting as a leaf). This is typical during 
+     * early modelling phases.
+     * @param {object} element 
+     * @returns {boolean}
+     */
+    function isFloating(element) {
+        return !getParent(element) && isLeaf(element);
+    }
+
+    /**
      * Finds the top-level element (root) in the hierarchy.
      * @param {object} element 
      * @returns {object} The root element.
@@ -390,6 +401,7 @@ var utils = (function() {
         hasMultipleParents: hasMultipleParents,
         getChildren: getChildren,
         isLeaf: isLeaf,
+        isFloating: isFloating,
         getRoot: getRoot,
         getRoots: getRoots,
         getLevel: getLevel,

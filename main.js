@@ -31,9 +31,9 @@
     const context = {
         partial: partial,
         elements: allElements,
-        valueStreams: allElements.filter(config.TYPES.valueStream),
-        capabilities: allElements.filter(config.TYPES.capability),
-        objects: allElements.filter(config.TYPES.object),
+        valueStreams: $(),
+        capabilities: $(),
+        objects: $(),
         relationships: allRelationships,
         refinementRelations: $(),
         successionRelations: $(),
@@ -45,6 +45,14 @@
         horizontalReflexiveRelations: $(),
     };
 
+    allElements.each(e => {
+        switch (e.type) {
+            case config.TYPES.valueStream: context.valueStreams.add(e); break;
+            case config.TYPES.capability: context.capabilities.add(e); break;
+            case config.TYPES.object: context.objects.add(e); break;
+        }
+    });
+
     allRelationships.each(r => {
         if (r.type === config.TYPES.refinement) {
             context.refinementRelations.add(r);
@@ -53,16 +61,12 @@
 
             const s = r.source.type;
             const t = r.target.type;
-
             if (s === t) {
                 context.horizontalReflexiveRelations.add(r);
-
-                if (s === config.TYPES.valueStream) {
-                    context.successionRelations.add(r);
-                } else if (s === config.TYPES.capability) {
-                    context.supportRelations.add(r);
-                } else if (s === config.TYPES.object) {
-                    context.materialRelations.add(r);
+                switch (s) {
+                    case config.TYPES.valueStream: context.successionRelations.add(r); break;
+                    case config.TYPES.capability: context.supportRelations.add(r); break;
+                    case config.TYPES.object: context.materialRelations.add(r); break;
                 }
             } else if (s === config.TYPES.capability && t === config.TYPES.valueStream) {
                 context.manifestationRelations.add(r);
@@ -110,6 +114,7 @@
     if (summary.totalViolations > 0) {
         console.log('VIOLATION SUMMARY:')
         console.log('  - Total Violations: ' + summary.totalViolations);
+        console.log('  - Rules Passed: ' + summary.passed.join(', '));
         console.log('  - Rules Failed: ' + summary.failed.join(', '));
         console.log();
         console.log('NOTE: Fix C1 and C2 violations before proceeding to the other ones.');
