@@ -164,6 +164,20 @@ var utils = (function() {
     }
 
     /**
+     * Returns a set of levels that is present in all of the given collections (first and rest).
+     * @param {collection} first 
+     * @param  {...collection} rest 
+     * @returns {Set<number>}
+     */
+    function getSharedLevels(first, ...rest) {
+        let levels = [...getLevels(first)];
+        for (const next in rest) {
+            levels = levels.filter(l => getLevels(next).has(l));
+        }
+        return new Set(levels);
+    }
+
+    /**
      * Determines the most frequent level in a collection.
      * @param {collection} elements
      * @returns {number|null}
@@ -277,7 +291,7 @@ var utils = (function() {
      * @returns {collection}
      */
     function filterByLevel(collection, levels) {
-        return collection.filter(e => levels.has(getLevel(e)));
+        return collection.filter(c => levels.has(getLevel(c)));
     }
 
     /**
@@ -407,6 +421,7 @@ var utils = (function() {
         getRoots: getRoots,
         getLevel: getLevel,
         getLevels: getLevels,
+        getSharedLevels: getSharedLevels,
         getDominantDepth: getDominantDepth,
         getSources: getSources,
         getTargets: getTargets,

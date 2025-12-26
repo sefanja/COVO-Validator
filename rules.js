@@ -53,11 +53,14 @@ var rules = (function() {
                 let scope = context.horizontalRelations.clone();
 
                 if (context.partial) {
+                    // Only same-type relationships at adjacent levels
+                    scope = utils.filterByLevelAdjacency(scope, -1);
+
+                    // Exclude support and material relations if we cannot check for the top-level value stream exception
                     const transformationLevels = utils.getLevels(context.transformationRelations);
                     const manifestationLevels = utils.getLevels(context.manifestationRelations);
-                    scope = utils.filterByLevelAdjacency(scope, -1).filter(r =>{
+                    scope = scope.filter(r =>{
                         const currentLevel = utils.getLevel(r);
-                        // can we check for the top-level value stream exception?
                         if (r.source.type === config.TYPES.capability && r.target.type === config.TYPES.capability) {
                             return manifestationLevels.has(currentLevel);
                         }
@@ -180,7 +183,12 @@ var rules = (function() {
                 // DETERMINE SCOPE
                 let scope = context.capabilities.clone();
 
-                if (context.partial) scope = utils.filterByLevel(scope, utils.getLevels(context.manifestationRelations));
+                if (context.partial) {
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(
+                        context.supportRelations,
+                        context.manifestationRelations
+                    ))
+                };
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(e => !utils.isRelatedTransitively(e, context.horizontalRelations, config.TYPES.valueStream));
@@ -282,8 +290,10 @@ var rules = (function() {
                 let scope = context.supportRelations.clone();
 
                 if (context.partial) {
-                    const materialLevels = utils.getLevels(context.materialRelations);
-                    scope = scope.filter(r => materialLevels.has(utils.getLevel(r)));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(
+                        context.transformationRelations,
+                        context.materialRelations
+                    ));
                 }
 
                 // IDENTIFY VIOLATIONS
@@ -307,10 +317,10 @@ var rules = (function() {
                 let scope = context.successionRelations.clone();
 
                 if (context.partial) {
-                    const manifestationLevels = utils.getLevels(context.manifestationRelations);
-                    const transformationLevels = utils.getLevels(context.transformationRelations);
-                    const relevantLevels = new Set(Array.from(manifestationLevels).filter(l => transformationLevels.has(l)));
-                    scope = scope.filter(r => relevantLevels.has(utils.getLevel(r)));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(
+                        context.manifestationRelations,
+                        context.transformationRelations
+                    ));
                 }
 
                 // IDENTIFY VIOLATIONS
@@ -334,12 +344,12 @@ var rules = (function() {
                 let scope = context.materialRelations.clone();
 
                 if (context.partial) {
-                    const transformationLevels = utils.getLevels(context.transformationRelations);
-                    const supportLevels = utils.getLevels(context.supportRelations);
-                    const manifestationLevels = utils.getLevels(context.manifestationRelations);
-                    const successionLevels = utils.getLevels(context.successionRelations);
-                    const relevantLevels = new Set(Array.from(transformationLevels).filter(l => supportLevels.has(l) && manifestationLevels.has(l) && successionLevels.has(l)));
-                    scope = scope.filter(r => relevantLevels.has(utils.getLevel(r)));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(
+                        context.transformationRelations,
+                        context.supportRelations,
+                        context.manifestationRelations,
+                        context.successionRelations
+                    ));
                 }
 
                 // IDENTIFY VIOLATIONS
