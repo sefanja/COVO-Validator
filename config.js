@@ -1,10 +1,10 @@
 var config = (function() {
 
     const TYPES = {
-        valueStream: 'business-process', // or value-stream
-        capability: 'business-function', // or capability
+        valueStream: 'business-process', // or 'value-stream'
+        capability: 'business-function', // or 'capability'
         object: 'business-object',
-        refinement: 'composition-relationship' // or aggregation-relationship (IMPORTANT: the chosen relationship type may only be used for refinement)
+        refinement: 'composition-relationship' // The chosen relationship type may only be used for refinement
     };
 
     // ASSUMED RELATIONSHIP DIRECTIONS:
@@ -16,7 +16,7 @@ var config = (function() {
     // transformation: from capability to object (e.g., access or directed association)
     //
     // ANOTHER ASSUMPTION:
-    // The model consists of nothing else besides the configured TYPES and their relationships.
+    // The model consists of nothing else besides the elements that must be validated.
 
     const VIOLATION_EXAMPLES = 5;
 

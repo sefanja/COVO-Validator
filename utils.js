@@ -88,17 +88,6 @@ var utils = (function() {
     }
 
     /**
-     * An element is considered 'floating' if it has no parent (acting as a root)
-     * but also has no children (acting as a leaf). This is typical during 
-     * early modelling phases.
-     * @param {object} element
-     * @returns {boolean}
-     */
-    function isFloating(element) {
-        return !getParent(element) && isLeaf(element);
-    }
-
-    /**
      * Finds the top-level element (root) in the hierarchy.
      * @param {object} element
      * @returns {object} The root element.
@@ -106,7 +95,9 @@ var utils = (function() {
     function getRoot(element) {
         let current = element;
         const visited = new Set();
-        while (!visited.has(current.id)) {
+        
+        while (current) {
+            if (visited.has(current.id)) return current; // Cycle detected: return current to avoid loop
             visited.add(current.id);
             const parent = getParent(current);
             if (!parent) return current;
@@ -138,13 +129,13 @@ var utils = (function() {
 
         if (levelCache[element.id] !== undefined) return levelCache[element.id];
 
-        var depth = 0;
-        var current = element;
-        var visited = new Set();
+        let depth = 0;
+        let current = element;
+        const visited = new Set();
         
         while (!visited.has(current.id)) {
             visited.add(current.id);
-            var parent = getParent(current);
+            const parent = getParent(current);
             if (!parent) break;
             current = parent;
             depth++;
@@ -164,17 +155,19 @@ var utils = (function() {
     }
 
     /**
-     * Returns a set of levels that is present in all of the given collections (first and rest).
+     * Returns a set of levels that are present in all of the given collections.
      * @param {collection} first 
      * @param  {...collection} rest 
      * @returns {Set<number>}
      */
     function getSharedLevels(first, ...rest) {
-        let levels = [...getLevels(first)];
-        for (const next in rest) {
-            levels = levels.filter(l => getLevels(next).has(l));
+        let shared = [...getLevels(first)];
+
+        for (const next of rest) {
+            shared = shared.filter(l => getLevels(next).has(l));
         }
-        return new Set(levels);
+
+        return new Set(shared);
     }
 
     /**
@@ -201,19 +194,6 @@ var utils = (function() {
     }
 
     // --- RELATIONSHIPS & FILTERING (Horizontal) ---
-
-    /**
-     * Gets all elements connected to the given elements via relationships within the given scope,
-     * optionally filtered by element type.
-     * @param {collection|object} elements - The starting elements.
-     * @param {collection} scope - Relationships within scope.
-     * @param {string} [endType] - Optional ArchiMate type to filter the results.
-     * @returns {collection}
-     */
-    function getRelated(elements, scope, endType = '*') {
-        const elementIds = new Set(wrap(elements).map(e => e.id));
-        return scope.filter(r => elementIds.has(r.source.id) || elementIds.has(r.target.id)).ends(endType);
-    }
 
     /**
      * Gets elements that are the sources of relationships within the given scope,
@@ -243,41 +223,46 @@ var utils = (function() {
 
     /**
      * Checks if a direct relationship within the given scope exists between two sets of elements.
-     * @param {collection} collection1
-     * @param {collection} collection2
+     * @param {collection} source
+     * @param {collection} target
      * @param {collection} scope - Relationships within scope.
      * @returns {boolean}
      */
-    function isRelated(collection1, collection2, scope) {
-        return isOverlapping(getRelated(collection1, scope), collection2);
+    function isRelated(source, target, scope) {
+        return isOverlapping(getTargets(source, scope), target);
     }
 
     /**
-     * Uses Breadth-First Search (BFS) to find if a path exists from a source element,
-     * optionally through same-type elements, to an element of the given target type,
-     * via relations within the given scope.
+     * Checks if a path exists from the source element to a target (either a specific 
+     * element or any element of a certain type) within the provided relationship scope.
      * 
-     * Example: A capability supporting another capability that manifests as a value stream.
-     * @param {object} sourceElement
-     * @param {collection} scope - Relationships within scope.
-     * @param {string} targetType
+     * @param {object} source - Starting element.
+     * @param {object|string} targetCriteria - Either the target element or a string (ArchiMate type).
+     * @param {collection} scope - The relationships allowed for traversal.
      * @returns {boolean}
      */
-    function isRelatedTransitively(sourceElement, scope, targetType) {
-        const queue = [sourceElement];
-        const visited = new Set([sourceElement.id]);
+    function canReach(source, targetCriteria, scope) {
+        const queue = [source];
+        const visited = new Set([source.id]);
+        const isTypeSearch = typeof targetCriteria === 'string';
+        const targetId = isTypeSearch ? null : targetCriteria.id;
 
         while (queue.length > 0) {
-            const currentElement = queue.shift();
+            const current = queue.shift();
 
-            const targetElements = getTargets(currentElement, scope, targetType);
-            if (targetElements.size() > 0) return true;
+            // Check if we reached the target
+            // (Exclude the source itself when searching by type)
+            if (isTypeSearch) {
+                if (current.id !== source.id && current.type === targetCriteria) return true;
+            } else {
+                if (current.id === targetId) return true;
+            }
 
-            const relatedSameTypeElements = getTargets(currentElement, scope, currentElement.type);
-            relatedSameTypeElements.each(e => {
-                if (!visited.has(e.id)) {
-                    visited.add(e.id);
-                    queue.push(e);
+            // Explore neighbors using the provided scope
+            getTargets(current, scope).each(neighbor => {
+                if (!visited.has(neighbor.id)) {
+                    visited.add(neighbor.id);
+                    queue.push(neighbor);
                 }
             });
         }
@@ -313,51 +298,6 @@ var utils = (function() {
             const currentLevel = getLevel(r);
             return buckets[key].has(currentLevel) && buckets[key].has(currentLevel + offset);
         });
-    }
-
-    // --- GRAPH TOPOLOGY ---
-
-    /**
-     * Checks for cyclic references in the hierarchy.
-     * @param {object} element
-     * @returns {boolean}
-     */
-    function isOwnAncestor(element) {
-        let current = element;
-        const initialId = element.id;
-        while (true) {
-            const parent = getParent(current);
-            if (!parent) break;
-            if (parent.id === initialId) return true;
-            current = parent;
-        }
-        return false;
-    }
-
-    /**
-     * Checks if a collection of nodes forms a connected graph.
-     * @param {collection} nodes - Elements.
-     * @param {collection} scope - Relationships within scope.
-     * @returns {boolean}
-     */
-    function isConnected(nodes, scope) {
-        if (nodes.size() <= 1) return true;
-
-        const nodeIds = new Set(nodes.map(n => n.id));
-        const visited = new Set();
-        const queue = [nodes.first()];
-        visited.add(nodes.first().id);
-        
-        while (queue.length > 0) {
-            const current = queue.shift();
-            getRelated(current, scope).each(neighbor => {
-                if (!visited.has(neighbor.id) && nodeIds.has(neighbor.id)) {
-                    visited.add(neighbor.id);
-                    queue.push(neighbor);
-                }
-            });
-        }
-        return visited.size === nodes.size();
     }
 
     // --- UI & FEEDBACK ---
@@ -416,7 +356,6 @@ var utils = (function() {
         hasMultipleParents: hasMultipleParents,
         getChildren: getChildren,
         isLeaf: isLeaf,
-        isFloating: isFloating,
         getRoot: getRoot,
         getRoots: getRoots,
         getLevel: getLevel,
@@ -426,11 +365,9 @@ var utils = (function() {
         getSources: getSources,
         getTargets: getTargets,
         isRelated: isRelated,
-        isRelatedTransitively: isRelatedTransitively,
+        canReach: canReach,
         filterByLevel: filterByLevel,
         filterByLevelAdjacency: filterByLevelAdjacency,
-        isOwnAncestor: isOwnAncestor,
-        isConnected: isConnected,
         flash: flash
     };
 

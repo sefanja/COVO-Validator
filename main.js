@@ -41,8 +41,7 @@
         materialRelations: $(),
         manifestationRelations: $(),
         transformationRelations: $(),
-        horizontalRelations: $(),
-        horizontalReflexiveRelations: $(),
+        horizontalRelations: $()
     };
 
     allElements.each(e => {
@@ -62,7 +61,6 @@
             const s = r.source.type;
             const t = r.target.type;
             if (s === t) {
-                context.horizontalReflexiveRelations.add(r);
                 switch (s) {
                     case config.TYPES.valueStream: context.successionRelations.add(r); break;
                     case config.TYPES.capability: context.supportRelations.add(r); break;
@@ -77,9 +75,6 @@
     });
 
     // Execution engine
-    console.clear();
-    console.log(`Starting COVO Validator to check ${context.elements.size()} elements and ${context.relationships.size()} relationships...`);
-
     const results = [];
     const summary = { passed: [], failed: [], totalViolations: 0 };
 
@@ -104,7 +99,10 @@
     });
 
     // Report generation
+    console.clear();
     console.show();
+    console.log(`Starting COVO Validator to check ${context.elements.size()} elements and ${context.relationships.size()} relationships...`);
+    console.log();
     console.log('======================================================================');
     console.log('                      VALIDATION REPORT');
     console.log('======================================================================');
