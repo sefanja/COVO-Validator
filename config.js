@@ -1,22 +1,19 @@
 var config = (function() {
 
     const TYPES = {
-        valueStream: 'business-process', // or 'value-stream'
+        stream: 'business-process', // or 'value-stream'
         capability: 'business-function', // or 'capability'
-        object: 'business-object',
+        object: 'business-object', // or 'resource'
         refinement: 'composition-relationship' // The chosen relationship type may only be used for refinement
     };
 
     // ASSUMED RELATIONSHIP DIRECTIONS:
     // refinement: from parent to child (e.g., composition or aggregation)
-    // succession: from predecessor to successor (e.g., triggering or flow)
-    // support: from provider to consumer (e.g., serving)
-    // material: from depender to dependee (e.g., directed association)
-    // manifestation: from capability to value stream (e.g., serving or aggregation)
+    // precedence: from predecessor to successor (e.g., triggering or flow)
+    // enablement: from provider to consumer (e.g., serving)
+    // structural dependency: from depender to dependee (e.g., directed association)
+    // manifestation: from capability to value stream (e.g., serving)
     // transformation: from capability to object (e.g., access or directed association)
-    //
-    // ANOTHER ASSUMPTION:
-    // The model consists of nothing else besides the elements that must be validated.
 
     const VIOLATION_EXAMPLES = 5;
 
