@@ -17,17 +17,9 @@ var config = (function() {
 
     const VIOLATION_EXAMPLES = 5;
 
-    const FLASH = {
-        enabled: true,
-        color: '#ff0000',
-        speed: 250,
-        count: 3
-    };
-
     return {
         TYPES: TYPES,
-        VIOLATION_EXAMPLES: VIOLATION_EXAMPLES,
-        FLASH: FLASH
+        VIOLATION_EXAMPLES: VIOLATION_EXAMPLES
     };
 
 })();

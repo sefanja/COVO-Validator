@@ -4,33 +4,33 @@ var rules = (function() {
         {
             id: 'C1',
             name: 'Unique parent',
-            validate: function(context) {
+            validate: function(context, strict = true) {
                 // DETERMINE SCOPE
                 const scope = context.elements;
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(utils.hasMultipleParents);
 
-                return {id: this.id, violations: violations};
+                return violations;
             }
         },
         {
             id: 'C2',
             name: 'Acyclicity',
-            validate: function(context) {
+            validate: function(context, strict = true) {
                 // DETERMINE SCOPE
                 const scope = context.isRefinedBy;
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(r => utils.canReach(r.target, r.source, context.isRefinedBy));
 
-                return {id: this.id, violations: violations};
+                return violations;
             }
         },
         {
             id: 'C3',
             name: 'Consistent refinement depth',
-            validate: function(context) {
+            validate: function(context, strict = true) {
                 // DETERMINE SCOPE
                 const scope = context.elements.filter(utils.isLeaf);
 
@@ -38,21 +38,21 @@ var rules = (function() {
                 const dominantDepth = utils.getDominantDepth(scope);
                 const violations = scope.filter(e => utils.getLevel(e) !== dominantDepth);
 
-                return {id: this.id, violations: violations};
+                return violations;
             }
         },
         {
             id: 'C4',
             name: 'Upward coherence',
-            validate: function(context) {
+            validate: function(context, strict = true) {
                 // DETERMINE SCOPE
                 let scope = context.horizontalRelationships.filter(r =>
                     !(r.source.type === config.TYPES.object && r.target.type === config.TYPES.object) // exclude objects
                 );
 
-                if (context.partial) {
+                if (!strict) {
                     // Only same-type relationships with adjacent levels
-                    scope = utils.filterByLevelAdjacency(scope, -1);
+                    scope = utils.filterByLevelOffset(scope, -1);
 
                     // Exclude enabelement relations if we cannot check for the top-level value stream exception
                     const manifestationLevels = utils.getLevels(context.isManifestedBy);
@@ -98,17 +98,17 @@ var rules = (function() {
                     ).size() === 0;
                 });
 
-                return {id: this.id, violations: violations};
+                return violations;
             }
         },
         {
             id: 'C5',
             name: 'Downward coherence',
-            validate: function(context) {
+            validate: function(context, strict = true) {
                 // DETERMINE SCOPE
                 let scope = context.horizontalRelationships.clone();
 
-                if (context.partial) scope = utils.filterByLevelAdjacency(scope, 1);
+                if (!strict) scope = utils.filterByLevelOffset(scope, 1);
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(r => {
@@ -124,17 +124,17 @@ var rules = (function() {
                     ).size() === 0;
                 });
 
-                return {id: this.id, violations: violations};
+                return violations;
             }
         },
         {
             id: 'C6',
             name: 'Capability impact',
-            validate: function(context) {
+            validate: function(context, strict = true) {
                 // DETERMINE SCOPE
                 let scope = context.capabilities.clone();
 
-                if (context.partial) scope = utils.filterByLevel(scope, utils.getLevels(context.transforms));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(context.transforms));
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(e => {
@@ -142,17 +142,17 @@ var rules = (function() {
                     return utils.isLeaf(e) ? (objectCount < 1) : (objectCount !== 1);
                 });
 
-                return {id: this.id, violations: violations};
+                return violations;
             }
         },
         {
             id: 'C7',
             name: 'Object relevance',
-            validate: function(context) {
+            validate: function(context, strict = true) {
                 // DETERMINE SCOPE
                 let scope = context.objects.clone();
 
-                if (context.partial) scope = utils.filterByLevel(scope, utils.getLevels(context.transforms));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(context.transforms));
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(e => {
@@ -160,49 +160,49 @@ var rules = (function() {
                     return utils.isLeaf(e) ? (capabilityCount < 1) : (capabilityCount !== 1);
                 });
 
-                return {id: this.id, violations: violations};
+                return violations;
             }
         },
         {
             id: 'C8',
             name: 'Capability purpose',
-            validate: function(context) {
+            validate: function(context, strict = true) {
                 // DETERMINE SCOPE
                 let scope = context.capabilities.clone();
 
-                if (context.partial) {
+                if (!strict) {
                     scope = utils.filterByLevel(scope, utils.getSharedLevels(context.enables, context.isManifestedBy));
                 }
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(e => !utils.canReach(e, config.TYPES.stream, context.enables.clone().add(context.isManifestedBy)));
 
-                return {id: this.id, violations: violations};
+                return violations;
             }
         },
         {
             id: 'C9',
             name: 'Traceability',
-            validate: function(context) {
+            validate: function(context, strict = true) {
                 // DETERMINE SCOPE
                 let scope = context.streams.clone();
 
-                if (context.partial) scope = utils.filterByLevel(scope, utils.getLevels(context.isManifestedBy));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(context.isManifestedBy));
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(e => utils.getSources(e, context.isManifestedBy).size() !== 1);
 
-                return {id: this.id, violations: violations};
+                return violations;
             }
         },
         {
             id: 'C10',
             name: 'Exclusive manifestation',
-            validate: function(context) {
+            validate: function(context, strict = true) {
                 // DETERMINE SCOPE
                 let scope = context.capabilities.clone();
 
-                if (context.partial) scope = utils.filterByLevel(scope, utils.getLevels(context.isManifestedBy));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(context.isManifestedBy));
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(e => {
@@ -210,38 +210,17 @@ var rules = (function() {
                     return !utils.isLeaf(e) && streams.size() > utils.getRoots(streams).size();
                 });
 
-                return {id: this.id, violations: violations};
+                return violations;
             }
         },
         {
             id: 'C11',
-            name: 'Capability-driven dependencies',
-            validate: function(context) {
-                // DETERMINE SCOPE
-                let scope = context.enables.clone();
-
-                if (context.partial) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(context.transforms, context.isBasedOn));
-                }
-
-                // IDENTIFY VIOLATIONS
-                const violations = scope.filter(r => {
-                    const sObj = utils.getTargets(r.source, context.transforms);
-                    const tObj = utils.getTargets(r.target, context.transforms);
-                    return !utils.isOverlapping(sObj, tObj) && !utils.isRelated(tObj, sObj, context.isBasedOn);
-                });
-
-                return {id: this.id, violations: violations};
-            }
-        },
-        {
-            id: 'C12',
             name: 'Value stream-driven dependencies',
-            validate: function(context) {
+            validate: function(context, strict = true) {
                 // DETERMINE SCOPE
                 let scope = context.precedes.clone();
 
-                if (context.partial) {
+                if (!strict) {
                     scope = utils.filterByLevel(scope, utils.getSharedLevels(context.isManifestedBy, context.transforms));
                 }
 
@@ -249,20 +228,41 @@ var rules = (function() {
                 const violations = scope.filter(r => {
                     const sObj = utils.getTargets(utils.getSources(r.source, context.isManifestedBy), context.transforms);
                     const tObj = utils.getTargets(utils.getSources(r.target, context.isManifestedBy), context.transforms);
-                    return !utils.isOverlapping(sObj, tObj) && !utils.isRelated(tObj, sObj, context.isBasedOn);
+                    return !utils.isOverlapping(sObj, tObj) && !utils.hasRelationship(tObj, sObj, context.isBasedOn);
                 });
 
-                return {id: this.id, violations: violations};
+                return violations;
+            }
+        },
+        {
+            id: 'C12',
+            name: 'Capability-driven dependencies',
+            validate: function(context, strict = true) {
+                // DETERMINE SCOPE
+                let scope = context.enables.clone();
+
+                if (!strict) {
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(context.transforms, context.isBasedOn));
+                }
+
+                // IDENTIFY VIOLATIONS
+                const violations = scope.filter(r => {
+                    const sObj = utils.getTargets(r.source, context.transforms);
+                    const tObj = utils.getTargets(r.target, context.transforms);
+                    return !utils.isOverlapping(sObj, tObj) && !utils.hasRelationship(tObj, sObj, context.isBasedOn);
+                });
+
+                return violations;
             }
         },
         {
             id: 'C13',
             name: 'Grounded dependencies',
-            validate: function(context) {
+            validate: function(context, strict = true) {
                 // DETERMINE SCOPE
                 let scope = context.isBasedOn.clone();
 
-                if (context.partial) {
+                if (!strict) {
                     scope = utils.filterByLevel(scope, utils.getSharedLevels(context.transforms, context.enables, context.isManifestedBy, context.precedes));
                 }
 
@@ -283,9 +283,41 @@ var rules = (function() {
                     return true;
                 });
 
-                return {id: this.id, violations: violations};
+                return violations;
             }
         },
+        {
+            id: 'V1',
+            name: 'Completeness',
+            validate: function(context, referenceContext) {
+                // TODO: wrong/unexpected validation results
+                const violations = $();
+                const lowestLevel = Math.max(...utils.getLevels(context.elements));
+                const lowestElements = context.elements.filter(e => utils.getLevel(e) === lowestLevel);
+                const lowestRelationships = context.horizontalRelationships.filter(r => utils.getLevel(r) === lowestLevel);
+                const configuredTypes = Object.entries(config.TYPES).map(([_, v]) => v);
+                configuredTypes.forEach(t1 => {
+                    const elementsOfType = lowestElements.filter(t1);
+                    if (elementsOfType.size() > 0) {
+                        violations.add(referenceContext.elements.filter(e => utils.getLevel(e) === lowestLevel && e.type === t1).not(elementsOfType));
+                    }
+                    configuredTypes.forEach(t2 => {
+                        const relationshipsOfType = lowestRelationships.filter(r => [t1, t2].includes(r.source.type) && [t1, t2].includes(r.target.type));
+                        if (relationshipsOfType.size() > 0) {
+                            violations.add(referenceContext.horizontalRelationships.filter(r => utils.getLevel(r) === lowestLevel && [t1, t2].includes(r.source.type) && [t1, t2].includes(r.target.type)).not(relationshipsOfType));
+                        }
+                    })
+                });
+                return violations;
+            }
+        },
+        {
+            id: 'V2',
+            name: 'Justification',
+            validate: function(context, referenceContext) {
+                return context.elements.clone().add(context.horizontalRelationships).not(referenceContext.elements.clone().add(referenceContext.horizontalRelationships));
+            }
+        }
     ];
 
 })();
