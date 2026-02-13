@@ -4,9 +4,9 @@ var rules = (function() {
         {
             id: 'C1',
             name: 'Unique parent',
-            validate: function(context, strict = true) {
+            validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                const scope = context.elements;
+                const scope = covoModel.elements;
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(utils.hasMultipleParents);
@@ -17,12 +17,12 @@ var rules = (function() {
         {
             id: 'C2',
             name: 'Acyclicity',
-            validate: function(context, strict = true) {
+            validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                const scope = context.isRefinedBy;
+                const scope = covoModel.isRefinedBy;
 
                 // IDENTIFY VIOLATIONS
-                const violations = scope.filter(r => utils.canReach(r.target, r.source, context.isRefinedBy));
+                const violations = scope.filter(r => utils.canReach(r.target, r.source, covoModel.isRefinedBy));
 
                 return violations;
             }
@@ -30,9 +30,9 @@ var rules = (function() {
         {
             id: 'C3',
             name: 'Consistent refinement depth',
-            validate: function(context, strict = true) {
+            validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                const scope = context.elements.filter(utils.isLeaf);
+                const scope = covoModel.elements.filter(utils.isLeaf);
 
                 // IDENTIFY VIOLATIONS
                 const dominantDepth = utils.getDominantDepth(scope);
@@ -44,9 +44,9 @@ var rules = (function() {
         {
             id: 'C4',
             name: 'Upward coherence',
-            validate: function(context, strict = true) {
+            validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                let scope = context.horizontalRelationships.filter(r =>
+                let scope = covoModel.horizontalRelationships.filter(r =>
                     !(r.source.type === config.TYPES.object && r.target.type === config.TYPES.object) // exclude objects
                 );
 
@@ -55,7 +55,7 @@ var rules = (function() {
                     scope = utils.filterByLevelOffset(scope, -1);
 
                     // Exclude enabelement relations if we cannot check for the top-level value stream exception
-                    const manifestationLevels = utils.getLevels(context.isManifestedBy);
+                    const manifestationLevels = utils.getLevels(covoModel.isManifestedBy);
                     scope = scope.filter(r =>
                         r.source.type === config.TYPES.capability && r.target.type === config.TYPES.capability
                         ? manifestationLevels.has(utils.getLevel(r))
@@ -76,22 +76,22 @@ var rules = (function() {
                         // Exception if both parents are principal
                         // TODO: within a common value stream
                         if (utils.isOverlapping(
-                            utils.getRoots(utils.getTargets(pSrc, context.isManifestedBy)),
-                            utils.getRoots(utils.getTargets(pTgt, context.isManifestedBy))
+                            utils.getRoots(utils.getTargets(pSrc, covoModel.isManifestedBy)),
+                            utils.getRoots(utils.getTargets(pTgt, covoModel.isManifestedBy))
                         )) return false;
                         // Exception for enablement cycles
-                        if (utils.canReach(pTgt, pSrc, context.enables)) return false;
+                        if (utils.canReach(pTgt, pSrc, covoModel.enables)) return false;
                     }
 
                     if (r.source.type === config.TYPES.stream && r.target.type === config.TYPES.stream) {
                         // Exception for precedence cycles
-                        if (utils.canReach(pTgt, pSrc, context.precedes)) return false;
+                        if (utils.canReach(pTgt, pSrc, covoModel.precedes)) return false;
                         // Exception for redunant precedence paths
-                        if (utils.canReach(pSrc, pTgt, context.precedes)) return false;
+                        if (utils.canReach(pSrc, pTgt, covoModel.precedes)) return false;
                     }
 
                     // Find matching parent relation
-                    return context.horizontalRelationships.filter(pR =>
+                    return covoModel.horizontalRelationships.filter(pR =>
                         pR.type === r.type
                         && pR.source.id === pSrc.id
                         && pR.target.id === pTgt.id
@@ -104,9 +104,9 @@ var rules = (function() {
         {
             id: 'C5',
             name: 'Downward coherence',
-            validate: function(context, strict = true) {
+            validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                let scope = context.horizontalRelationships.clone();
+                let scope = covoModel.horizontalRelationships.clone();
 
                 if (!strict) scope = utils.filterByLevelOffset(scope, 1);
 
@@ -117,7 +117,7 @@ var rules = (function() {
                     if (utils.isLeaf(r.source) || utils.isLeaf(r.target)) return true;
 
                     // Find matching child relation
-                    return context.horizontalRelationships.filter(cR =>
+                    return covoModel.horizontalRelationships.filter(cR =>
                         cR.type === r.type
                         && utils.isOverlapping(cR.source, utils.getChildren(r.source))
                         && utils.isOverlapping(cR.target, utils.getChildren(r.target))
@@ -130,15 +130,15 @@ var rules = (function() {
         {
             id: 'C6',
             name: 'Capability impact',
-            validate: function(context, strict = true) {
+            validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                let scope = context.capabilities.clone();
+                let scope = covoModel.capabilities.clone();
 
-                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(context.transforms));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.transforms));
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(e => {
-                    const objectCount = utils.getTargets(e, context.transforms).size();
+                    const objectCount = utils.getTargets(e, covoModel.transforms).size();
                     return utils.isLeaf(e) ? (objectCount < 1) : (objectCount !== 1);
                 });
 
@@ -148,15 +148,15 @@ var rules = (function() {
         {
             id: 'C7',
             name: 'Object relevance',
-            validate: function(context, strict = true) {
+            validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                let scope = context.objects.clone();
+                let scope = covoModel.objects.clone();
 
-                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(context.transforms));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.transforms));
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(e => {
-                    const capabilityCount = utils.getSources(e, context.transforms).size();
+                    const capabilityCount = utils.getSources(e, covoModel.transforms).size();
                     return utils.isLeaf(e) ? (capabilityCount < 1) : (capabilityCount !== 1);
                 });
 
@@ -166,16 +166,16 @@ var rules = (function() {
         {
             id: 'C8',
             name: 'Capability purpose',
-            validate: function(context, strict = true) {
+            validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                let scope = context.capabilities.clone();
+                let scope = covoModel.capabilities.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(context.enables, context.isManifestedBy));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.enables, covoModel.isManifestedBy));
                 }
 
                 // IDENTIFY VIOLATIONS
-                const violations = scope.filter(e => !utils.canReach(e, config.TYPES.stream, context.enables.clone().add(context.isManifestedBy)));
+                const violations = scope.filter(e => !utils.canReach(e, config.TYPES.stream, covoModel.enables.clone().add(covoModel.isManifestedBy)));
 
                 return violations;
             }
@@ -183,14 +183,14 @@ var rules = (function() {
         {
             id: 'C9',
             name: 'Traceability',
-            validate: function(context, strict = true) {
+            validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                let scope = context.streams.clone();
+                let scope = covoModel.streams.clone();
 
-                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(context.isManifestedBy));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.isManifestedBy));
 
                 // IDENTIFY VIOLATIONS
-                const violations = scope.filter(e => utils.getSources(e, context.isManifestedBy).size() !== 1);
+                const violations = scope.filter(e => utils.getSources(e, covoModel.isManifestedBy).size() !== 1);
 
                 return violations;
             }
@@ -198,15 +198,15 @@ var rules = (function() {
         {
             id: 'C10',
             name: 'Exclusive manifestation',
-            validate: function(context, strict = true) {
+            validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                let scope = context.capabilities.clone();
+                let scope = covoModel.capabilities.clone();
 
-                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(context.isManifestedBy));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.isManifestedBy));
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(e => {
-                    const streams = utils.getTargets(e, context.isManifestedBy);
+                    const streams = utils.getTargets(e, covoModel.isManifestedBy);
                     return !utils.isLeaf(e) && streams.size() > utils.getRoots(streams).size();
                 });
 
@@ -216,19 +216,19 @@ var rules = (function() {
         {
             id: 'C11',
             name: 'Value stream-driven dependencies',
-            validate: function(context, strict = true) {
+            validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                let scope = context.precedes.clone();
+                let scope = covoModel.precedes.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(context.isManifestedBy, context.transforms));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.isManifestedBy, covoModel.transforms));
                 }
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(r => {
-                    const sObj = utils.getTargets(utils.getSources(r.source, context.isManifestedBy), context.transforms);
-                    const tObj = utils.getTargets(utils.getSources(r.target, context.isManifestedBy), context.transforms);
-                    return !utils.isOverlapping(sObj, tObj) && !utils.hasRelationship(tObj, sObj, context.isBasedOn);
+                    const sObj = utils.getTargets(utils.getSources(r.source, covoModel.isManifestedBy), covoModel.transforms);
+                    const tObj = utils.getTargets(utils.getSources(r.target, covoModel.isManifestedBy), covoModel.transforms);
+                    return !utils.isOverlapping(sObj, tObj) && !utils.hasRelationship(tObj, sObj, covoModel.isBasedOn);
                 });
 
                 return violations;
@@ -237,19 +237,19 @@ var rules = (function() {
         {
             id: 'C12',
             name: 'Capability-driven dependencies',
-            validate: function(context, strict = true) {
+            validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                let scope = context.enables.clone();
+                let scope = covoModel.enables.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(context.transforms, context.isBasedOn));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.transforms, covoModel.isBasedOn));
                 }
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(r => {
-                    const sObj = utils.getTargets(r.source, context.transforms);
-                    const tObj = utils.getTargets(r.target, context.transforms);
-                    return !utils.isOverlapping(sObj, tObj) && !utils.hasRelationship(tObj, sObj, context.isBasedOn);
+                    const sObj = utils.getTargets(r.source, covoModel.transforms);
+                    const tObj = utils.getTargets(r.target, covoModel.transforms);
+                    return !utils.isOverlapping(sObj, tObj) && !utils.hasRelationship(tObj, sObj, covoModel.isBasedOn);
                 });
 
                 return violations;
@@ -258,26 +258,26 @@ var rules = (function() {
         {
             id: 'C13',
             name: 'Grounded dependencies',
-            validate: function(context, strict = true) {
+            validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                let scope = context.isBasedOn.clone();
+                let scope = covoModel.isBasedOn.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(context.transforms, context.enables, context.isManifestedBy, context.precedes));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.transforms, covoModel.enables, covoModel.isManifestedBy, covoModel.precedes));
                 }
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(r => {
-                    const srcCaps = utils.getSources(r.source, context.transforms);
-                    const tgtCaps = utils.getSources(r.target, context.transforms);
+                    const srcCaps = utils.getSources(r.source, covoModel.transforms);
+                    const tgtCaps = utils.getSources(r.target, covoModel.transforms);
                     if (utils.isOverlapping(srcCaps, tgtCaps)) return false ; // (1) same capability
 
-                    const enabledCaps = utils.getTargets(tgtCaps, context.enables);
+                    const enabledCaps = utils.getTargets(tgtCaps, covoModel.enables);
                     if (utils.isOverlapping(enabledCaps, srcCaps)) return false; // (2) enablement
 
-                    const srcStages = utils.getTargets(srcCaps, context.isManifestedBy);
-                    const tgtStages = utils.getTargets(tgtCaps, context.isManifestedBy);
-                    const sucStages = utils.getTargets(tgtStages, context.precedes);
+                    const srcStages = utils.getTargets(srcCaps, covoModel.isManifestedBy);
+                    const tgtStages = utils.getTargets(tgtCaps, covoModel.isManifestedBy);
+                    const sucStages = utils.getTargets(tgtStages, covoModel.precedes);
                     if (utils.isOverlapping(sucStages, srcStages)) return false; // (3) precedence
 
                     return true;
@@ -289,22 +289,22 @@ var rules = (function() {
         {
             id: 'V1',
             name: 'Completeness',
-            validate: function(context, referenceContext) {
+            validate: function(covoModel, referenceCovoModel) {
                 // TODO: wrong/unexpected validation results
                 const violations = $();
-                const lowestLevel = Math.max(...utils.getLevels(context.elements));
-                const lowestElements = context.elements.filter(e => utils.getLevel(e) === lowestLevel);
-                const lowestRelationships = context.horizontalRelationships.filter(r => utils.getLevel(r) === lowestLevel);
+                const lowestLevel = Math.max(...utils.getLevels(covoModel.elements));
+                const lowestElements = covoModel.elements.filter(e => utils.getLevel(e) === lowestLevel);
+                const lowestRelationships = covoModel.horizontalRelationships.filter(r => utils.getLevel(r) === lowestLevel);
                 const configuredTypes = Object.entries(config.TYPES).map(([_, v]) => v);
                 configuredTypes.forEach(t1 => {
                     const elementsOfType = lowestElements.filter(t1);
                     if (elementsOfType.size() > 0) {
-                        violations.add(referenceContext.elements.filter(e => utils.getLevel(e) === lowestLevel && e.type === t1).not(elementsOfType));
+                        violations.add(referenceCovoModel.elements.filter(e => utils.getLevel(e) === lowestLevel && e.type === t1).not(elementsOfType));
                     }
                     configuredTypes.forEach(t2 => {
-                        const relationshipsOfType = lowestRelationships.filter(r => [t1, t2].includes(r.source.type) && [t1, t2].includes(r.target.type));
+                        const relationshipsOfType = lowestRelationships.filter(r => r.source.type === t1 && r.target.type === t2);
                         if (relationshipsOfType.size() > 0) {
-                            violations.add(referenceContext.horizontalRelationships.filter(r => utils.getLevel(r) === lowestLevel && [t1, t2].includes(r.source.type) && [t1, t2].includes(r.target.type)).not(relationshipsOfType));
+                            violations.add(referenceCovoModel.horizontalRelationships.filter(r => utils.getLevel(r) === lowestLevel && r.source.type === t1 && r.target.type === t2).not(relationshipsOfType));
                         }
                     })
                 });
@@ -314,8 +314,8 @@ var rules = (function() {
         {
             id: 'V2',
             name: 'Justification',
-            validate: function(context, referenceContext) {
-                return context.elements.clone().add(context.horizontalRelationships).not(referenceContext.elements.clone().add(referenceContext.horizontalRelationships));
+            validate: function(covoModel, referenceCovoModel) {
+                return covoModel.elements.clone().add(covoModel.horizontalRelationships).not(referenceCovoModel.concepts);
             }
         }
     ];

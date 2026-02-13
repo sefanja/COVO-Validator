@@ -1,7 +1,3 @@
-/**
- * COVO Utility Module for jArchi
- * Contains reusable functions for hierarchy analysis, graph traversal, and visual feedback.
- */
 var utils = (function() {
     const _EMPTY = $(); // cloning this collection is significanlty faster than creating a new one with $()
     
@@ -47,8 +43,8 @@ var utils = (function() {
 
     /**
      * Returns the intersection of two or more collections.
-     * @param {jArchiCollection} first - The base collection.
-     * @param {...jArchiCollection} rest - Other collections to compare.
+     * @param {jArchiCollection|ArchiMateConcept} first - The base collection.
+     * @param {...jArchiCollection|ArchiMateConcept} rest - Other collections to compare.
      * @returns {jArchiCollection}
      */
     function getIntersection(first, ...rest) {
@@ -62,7 +58,7 @@ var utils = (function() {
 
     /**
      * Checks if two or more collections overlap.
-     * @param {...jArchiCollection} concepts
+     * @param {...jArchiCollection|ArchiMateConcept} concepts
      * @returns {boolean}
      */
     function isOverlapping(...concepts) {
@@ -71,6 +67,20 @@ var utils = (function() {
 
     // --- HIERARCHY ---
 
+    const parentsCache = {};
+    const childrenCache = {};
+
+    model.find(config.TYPES.refinement).each(r => {
+        const parent = r.source;
+        const child = r.target;
+
+        if (parentsCache[child.id] === undefined) parentsCache[child.id] = _EMPTY.clone();
+        parentsCache[child.id].add(parent);
+
+        if (childrenCache[parent.id] === undefined) childrenCache[parent.id] = _EMPTY.clone();
+        childrenCache[parent.id].add(child);
+    });
+
     /**
      * Traverses the 'refinement' hierarchy upwards to find the immediate parent.
      * Logic is based on the relationship type defined in config.js (default: composition).
@@ -78,7 +88,7 @@ var utils = (function() {
      * @returns {ArchiMateElement|undefined}
      */
     function getParent(element) {
-        return wrap(element).inRels(config.TYPES.refinement).sourceEnds().first();
+        return (parentsCache[element.id] || _EMPTY).first();
     }
 
     /**
@@ -87,16 +97,20 @@ var utils = (function() {
      * @returns {boolean}
      */
     function hasMultipleParents(element) {
-        return wrap(element).inRels(config.TYPES.refinement).sourceEnds().size() > 1;
+        return (parentsCache[element.id] || _EMPTY).size() > 1;
     }
 
     /**
      * Returns all immediate children via refinement relationships.
-     * @param {ArchiMateElement} element
+     * @param {jArchiCollection|ArchiMateElement} elements
      * @returns {collection}
      */
-    function getChildren(element) {
-        return wrap(element).outRels(config.TYPES.refinement).targetEnds();
+    function getChildren(elements) {
+        const children = _EMPTY.clone();
+        wrap(elements).each(e => {
+            if (childrenCache[e.id] !== undefined) children.add(childrenCache[e.id]);
+        });
+        return children;
     }
 
     /**
@@ -105,7 +119,7 @@ var utils = (function() {
      * @returns {boolean}
      */
     function isLeaf(element) {
-        return getChildren(element).size() === 0;
+        return (childrenCache[element.id] || _EMPTY).size() === 0;
     }
 
     /**
@@ -122,14 +136,16 @@ var utils = (function() {
             if (visited.has(current.id)) return current; // Cycle detected: return current to avoid loop
             visited.add(current.id);
             const parent = getParent(current);
-            if (!parent) return current;
+            if (!parent) {
+                return current;
+            }
             current = parent;
         }
     }
 
     /**
      * Returns unique roots for a collection of elements.
-     * @param {jArchiCollection} elements
+     * @param {jArchiCollection|ArchiMateElement} elements
      * @returns {jArchiCollection}
      */
     function getRoots(elements) {
@@ -171,7 +187,7 @@ var utils = (function() {
 
     /**
      * Returns a set of levels present in a collection of elements and/or relationships.
-     * @param {jArchiCollection} concepts
+     * @param {jArchiCollection|ArchiMateConcept} concepts
      * @returns {Set<number>}
      */
     function getLevels(concepts) {
@@ -180,8 +196,8 @@ var utils = (function() {
 
     /**
      * Returns a set of levels that are present in all of the given collections.
-     * @param {jArchiCollection} first 
-     * @param  {...jArchiCollection} rest 
+     * @param {jArchiCollection|ArchiMateConcept} first 
+     * @param  {...jArchiCollection|ArchiMateConcept} rest 
      * @returns {Set<number>}
      */
     function getSharedLevels(first, ...rest) {
@@ -247,8 +263,8 @@ var utils = (function() {
 
     /**
      * Checks if a direct relationship within the given scope exists between two sets of elements.
-     * @param {jArchiCollection} source
-     * @param {jArchiCollection} target
+     * @param {jArchiCollection|ArchiMateElement} source
+     * @param {jArchiCollection|ArchiMateElement} target
      * @param {jArchiCollection} scope - Relationships within scope.
      * @returns {boolean}
      */
@@ -304,7 +320,7 @@ var utils = (function() {
 
     /**
      * Filters relationships for progressive validation based on level adjacency.
-     * @param {collectijArchiCollectionon} relationships
+     * @param {jArchiCollectionon} relationships
      * @param {number} offset (-1 for parent layer, 1 for child layer)
      * @returns {jArchiCollection}
      */
@@ -331,18 +347,19 @@ var utils = (function() {
      * @param {jArchiCollection} collection - Raw input from a view or selection.
      * @returns {Object} context containing categorized sub-collections.
      */
-    function buildContext(collection) {
-        const rawElements = collection.filter('element');
-        const rawRelationships = collection.filter('relationship');
+    function buildCovoModel(collection) {
+        const rawElements = getUniqueConcepts(collection.filter('element'));
+        const rawRelationships = getUniqueConcepts(collection.filter('relationship'));
 
         const context = {
+            concepts: _EMPTY.clone(),
             elements: _EMPTY.clone(),
             streams: _EMPTY.clone(),
             capabilities: _EMPTY.clone(),
             objects: _EMPTY.clone(),
             relationships: _EMPTY.clone(),
-            isRefinedBy: _EMPTY.clone(),
             horizontalRelationships: _EMPTY.clone(),
+            isRefinedBy: _EMPTY.clone(),
             precedes: _EMPTY.clone(),
             enables: _EMPTY.clone(),
             isBasedOn: _EMPTY.clone(),
@@ -354,6 +371,7 @@ var utils = (function() {
 
         rawElements.each(e => {
             if (!configuredTypes.includes(e.type)) return;
+            context.concepts.add(e);
             context.elements.add(e);
             switch (e.type) {
                 case config.TYPES.stream: context.streams.add(e); break;
@@ -364,7 +382,7 @@ var utils = (function() {
 
         rawRelationships.each(r => {
             if (!configuredTypes.includes(r.source.type) || !configuredTypes.includes(r.target.type)) return;
-            context.relationships.add(r);
+            context.concepts.add(r);
 
             if (r.type === config.TYPES.refinement) {
                 context.isRefinedBy.add(r);
@@ -386,10 +404,6 @@ var utils = (function() {
                 }
             }
         });
-
-        for (const key of Object.keys(context)) {
-            context[key] = getUniqueConcepts(context[key]);
-        }
 
         return context;
     }
@@ -471,7 +485,7 @@ var utils = (function() {
                 if (s.elements.size() === 0) return;
                 const ids = s.elements.map(e => e.id);
                 const stageRels = s.elements.rels().filter(r => ids.includes(r.source.id) && ids.includes(r.target.id));
-                const stageContext = buildContext(s.elements.add(stageRels));
+                const stageContext = buildCovoModel(s.elements.add(stageRels));
                 valueStageZones.push({
                     name: s.name, 
                     viewName: view.name, 
@@ -486,8 +500,10 @@ var utils = (function() {
     return {
         // Core utilities
         isRelationship: isRelationship,
+        getUniqueConcepts: getUniqueConcepts,
 
         // Set operations
+        getIntersection: getIntersection,
         isOverlapping: isOverlapping,
 
         // Vertical structure
@@ -511,7 +527,7 @@ var utils = (function() {
         filterByLevelOffset: filterByLevelOffset,
 
         // View & context
-        buildContext: buildContext,
+        buildCovoModel: buildCovoModel,
         identifyDomainHeader: identifyDomainHeader,
         getTopValueStream: getTopValueStream,
         getValueStageZones: getValueStageZones,

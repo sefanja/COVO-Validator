@@ -9,38 +9,41 @@
 
     // Validation profile
     const PROFILE = {
-        construction: 'CONSTRUCTION: progressive validation (silent)',
-        audit: 'AUDIT: strict validation (full report)'
+        construction: '1. CONSTRUCTION: Validate work-in-progress (permissible)',
+        audit: '2. AUDIT: Final cross-view check (requires all relevant views)'
     };
     const choice = '' + window.promptSelection("Validation profile", Object.values(PROFILE));
     if (!Object.values(PROFILE).includes(choice)) return; // user chose to cancel
     const strict = choice === PROFILE.audit;
 
     // Initialize
-    console.clear();
-    console.show();
     const start = Date.now();
+
     load(__DIR__ + 'config.js');
     load(__DIR__ + 'rules.js');
     load(__DIR__ + 'utils.js');
 
     // Collect views for validation
+    const topLevelViews = _EMPTY.clone();
     const landscapeViews = _EMPTY.clone();
     const objectDomainViews = _EMPTY.clone();
     const valueStreamViews = _EMPTY.clone();
     const valueStreamViewCollections = {};
 
     views.each(view => {
-        const viewContext = utils.buildContext($(view).find());
-        const topStream = utils.getTopValueStream(viewContext);
+        const covoModel = utils.buildCovoModel($(view).find());
+        const topStream = utils.getTopValueStream(covoModel);
+        const levels = utils.getLevels(covoModel.elements);
 
-        if (topStream) { // value stream view
+        if (levels.size === 1 && [...levels][0] === 0) {
+            topLevelViews.add(view);
+        } else if (topStream) {
             const id = topStream.id;
             if (!valueStreamViewCollections[id]) valueStreamViewCollections[id] = _EMPTY.clone();
             valueStreamViewCollections[id].add(view);
             valueStreamViews.add(view);
         } else if (strict) {
-            if (utils.identifyDomainHeader(viewContext)) {
+            if (utils.identifyDomainHeader(covoModel)) {
                 objectDomainViews.add(view);
             } else {
                 landscapeViews.add(view);
@@ -51,10 +54,19 @@
     const valueStageZones = utils.getValueStageZones(valueStreamViews);
 
     // Validate
-    const globalContext = utils.buildContext(selection.find());
-    const valueStreamContext = utils.buildContext(valueStreamViews.find());
+    const globalCovoModel = utils.buildCovoModel(views.find());
+    const collectionCovoModel = utils.buildCovoModel(valueStreamViews.find().add(topLevelViews.find()));
+
+    console.clear();
+    console.show();
+    console.log(`Starting COVO Validator in ${strict ? 'AUDIT' : 'CONSTRUCTION'} mode to check:`);
+    console.log(`  - ${views.size()} views`);
+    console.log(`  - ${globalCovoModel.elements.size()} elements`);
+    console.log(`  - ${globalCovoModel.horizontalRelationships.size()} hotizontal relationships`);
+    console.log();
 
     const globalViolations = [];
+    const topLevelViolations = [];
     const valueStreamCollectionViolations = [];
     const valueStageZoneViolations = [];
     const objectDomainViewViolations = [];
@@ -63,7 +75,7 @@
     const summary = { failed: new Set(), totalViolations: 0 };
 
     for (const rule of rules.filter(r => ['C1', 'C2', 'C3'].includes(r.id))) {
-        const violations = rule.validate(globalContext, strict);
+        const violations = rule.validate(globalCovoModel, strict);
         const violationCount = violations.size();
         if (violationCount > 0) {
             globalViolations.push({
@@ -77,10 +89,30 @@
         }
     }
 
+    for (const view of topLevelViews) {
+        const covoModel = utils.buildCovoModel($(view).find());
+        for (const rule of rules.filter(r => ['C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13'].includes(r.id))) {
+            const violations = rule.validate(covoModel, true);
+            const violationCount = violations.size();
+            if (violationCount > 0) {
+                topLevelViolations.push({
+                    id: rule.id,
+                    name: rule.name,
+                    violations: violations,
+                    violationCount: violationCount,
+                    viewName: view.name
+                });
+                summary.totalViolations += violationCount;
+                summary.failed.add(rule.id);
+            }
+        }
+    }
+
     for (const [topStreamId, views] of Object.entries(valueStreamViewCollections)) {
-        const context = utils.buildContext(views.find());
+        const covoModel = utils.buildCovoModel(views.find());
+        const covoModelExtended = utils.buildCovoModel((topLevelViews.clone().add(views)).find());
         for (const rule of rules.filter(r => ['C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13'].includes(r.id))) {
-            const violations = rule.validate(context, strict);
+            const violations = rule.validate(rule.id === 'C4' ? covoModelExtended : covoModel, strict);
             const violationCount = violations.size();
             if (violationCount > 0) {
                 valueStreamCollectionViolations.push({
@@ -118,19 +150,22 @@
     }
 
     for (const view of objectDomainViews) {
+        const covoModel = utils.buildCovoModel($(view).find());
+
+        // Construct reference context
+        const domainHeader = utils.identifyDomainHeader(covoModel);
+        const headerLevel = utils.getLevel(domainHeader);
+        const lowestLevel = Math.max(...utils.getLevels(covoModel.objects));
+        let domainObjects = $(domainHeader);
+        for (let i = 0; i < lowestLevel - headerLevel; i++) {
+            domainObjects = utils.getChildren(domainObjects);
+        }
+        const domainIsBasedOn = domainObjects.rels().filter(r => r.type !== config.TYPES.refinement && r.source.type === config.TYPES.object && r.target.type === config.TYPES.object); // all rels in the entire model between and with domain objects
+        const collectionIsBasedOn = utils.getIntersection(collectionCovoModel.isBasedOn, domainIsBasedOn); // rels scoped back to value stream and top-level views (what you select is what you get)
+        const referenceContext = utils.buildCovoModel($(domainHeader).add(collectionIsBasedOn).add(collectionIsBasedOn.ends()));
+
         for (const rule of rules.filter(r => ['V1', 'V2'].includes(r.id))) {
-            const viewContext = utils.buildContext($(view).find());
-            const domain = utils.identifyDomainHeader(viewContext);
-            const domainLevel = utils.getLevel(domain);
-            const lowestLevel = Math.max(...utils.getLevels(viewContext.objects));
-            let domainObjects = $(domain);
-            for (let i = 0; i < lowestLevel - domainLevel; i++) {
-                domainObjects = utils.getChildren(domainObjects);
-            }
-            const domainIsBasedOnIds = domainObjects.rels().filter(r => r.type !== config.TYPES.refinement && r.source.type === config.TYPES.object && r.target.type === config.TYPES.object).map(r => r.id);
-            const valueStreamIsBasedOn = valueStreamContext.isBasedOn.filter(r => domainIsBasedOnIds.includes(r.id));
-            const referenceContext = utils.buildContext(valueStreamIsBasedOn.add(valueStreamIsBasedOn.ends()));
-            const violations = rule.validate(viewContext, referenceContext);
+            const violations = rule.validate(covoModel, referenceContext);
             const violationCount = violations.size();
             if (violationCount > 0) {
                 objectDomainViewViolations.push({
@@ -147,8 +182,9 @@
     }
 
     for (const view of landscapeViews) {
+        const covoModel = utils.buildCovoModel($(view).find());
         for (const rule of rules.filter(r => ['V1', 'V2'].includes(r.id))) {
-            const violations = rule.validate(utils.buildContext($(view).find()), valueStreamContext);
+            const violations = rule.validate(covoModel, collectionCovoModel);
             const violationCount = violations.size();
             if (violationCount > 0) {
                 landscapeViewViolations.push({
@@ -165,10 +201,8 @@
     }
 
     // Report generation
-    console.log(`Starting COVO Validator to check ${globalContext.elements.size()} elements and ${globalContext.relationships.size()} relationships...`);
-    console.log();
     console.log('======================================================================');
-    console.log('                       MODEL VALIDATION REPORT');
+    console.log('                           VALIDATION REPORT');
     console.log('======================================================================');
     console.log();
     console.log(`OVERALL STATUS: ${(summary.totalViolations > 0 ? 'FAILED' : 'PASSED')}`);
@@ -204,6 +238,28 @@
         }
     }
 
+    if (topLevelViolations.length > 0) {
+        console.log();
+        console.log('----------------------------------------------------------------------');
+        console.log('                    VIOLATIONS IN TOP-LEVEL VIEWS');
+        console.log('----------------------------------------------------------------------');
+        for (const violation of topLevelViolations) {
+            console.log();
+            console.log(`[!!] ${violation.id} - ${violation.name} - ${violation.viewName}`);
+            console.log('----------------------------------------------------------------------');
+            console.log(`${violation.violations.size()} violations:`);
+            let count = 0;
+            violation.violations.each(v => {
+                if(count < config.VIOLATION_EXAMPLES) {
+                    if (utils.isRelationship(v)) console.log(`- ${v.source.name} (L${utils.getLevel(v.source)} ${v.source.type}) --> ${v.target.name} (L${utils.getLevel(v.target)} ${v.target.type})`);
+                    else console.log(`- ${v.name} (L${utils.getLevel(v)} ${v.type})`);
+                    count++;
+                }
+            });
+            console.log();
+        }
+    }
+
     if (valueStreamCollectionViolations.length > 0) {
         console.log();
         console.log('----------------------------------------------------------------------');
@@ -211,9 +267,9 @@
         console.log('----------------------------------------------------------------------');
         for (const violation of valueStreamCollectionViolations) {
             console.log();
-            console.log(`[!!] ${violation.id} - ${violation.name}`);
+            console.log(`[!!] ${violation.id} - ${violation.name} - ${violation.streamName}`);
             console.log('----------------------------------------------------------------------');
-            console.log(`${violation.violations.size()} violations in ${violation.streamName}:`);
+            console.log(`${violation.violations.size()} violations:`);
             let count = 0;
             violation.violations.each(v => {
                 if(count < config.VIOLATION_EXAMPLES) {
@@ -233,9 +289,9 @@
         console.log('----------------------------------------------------------------------');
         for (const violation of valueStageZoneViolations) {
             console.log();
-            console.log(`[!!] ${violation.id} - ${violation.name}`);
+            console.log(`[!!] ${violation.id} - ${violation.name} - ${violation.stageName} (${violation.viewName})`);
             console.log('----------------------------------------------------------------------');
-            console.log(`${violation.violations.size()} violations in ${violation.stageName} (${violation.viewName}):`);
+            console.log(`${violation.violations.size()} violations:`);
             let count = 0;
             violation.violations.each(v => {
                 if(count < config.VIOLATION_EXAMPLES) {
@@ -255,9 +311,9 @@
         console.log('----------------------------------------------------------------------');
         for (const violation of objectDomainViewViolations) {
             console.log();
-            console.log(`[!!] ${violation.id} - ${violation.name}`);
+            console.log(`[!!] ${violation.id} - ${violation.name} - ${violation.viewName}`);
             console.log('----------------------------------------------------------------------');
-            console.log(`${violation.violations.size()} violations in ${violation.viewName}:`);
+            console.log(`${violation.violations.size()} violations:`);
             let count = 0;
             violation.violations.each(v => {
                 if(count < config.VIOLATION_EXAMPLES) {
@@ -277,11 +333,11 @@
         console.log('----------------------------------------------------------------------');
         for (const violation of landscapeViewViolations) {
             console.log();
-            console.log(`[!!] ${violation.id} - ${violation.name}`);
+            console.log(`[!!] ${violation.id} - ${violation.name} - ${violation.viewName}`);
             console.log('----------------------------------------------------------------------');
-            console.log(`${violation.violations.size()} violations of ${violation.viewName}:`);
+            console.log(`${violation.violations.size()} violations:`);
             let count = 0;
-            violation.violations.each(function(v) {
+            violation.violations.each(v => {
                 if(count < config.VIOLATION_EXAMPLES) {
                     if (utils.isRelationship(v)) console.log(`- ${v.source.name} (L${utils.getLevel(v.source)} ${v.source.type}) --> ${v.target.name} (L${utils.getLevel(v.target)} ${v.target.type})`);
                     else console.log(`- ${v.name} (L${utils.getLevel(v)} ${v.type})`);
