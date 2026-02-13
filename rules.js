@@ -4,41 +4,24 @@ var rules = (function() {
         {
             id: 'C1',
             name: 'Unique parent',
-            validate: function(covoModel, strict = true) {
-                // DETERMINE SCOPE
-                const scope = covoModel.elements;
-
-                // IDENTIFY VIOLATIONS
-                const violations = scope.filter(utils.hasMultipleParents);
-
-                return violations;
+            validate: function(covoModel) {
+                return covoModel.elements.filter(utils.hasMultipleParents);
             }
         },
         {
             id: 'C2',
             name: 'Acyclicity',
-            validate: function(covoModel, strict = true) {
-                // DETERMINE SCOPE
-                const scope = covoModel.isRefinedBy;
-
-                // IDENTIFY VIOLATIONS
-                const violations = scope.filter(r => utils.canReach(r.target, r.source, covoModel.isRefinedBy));
-
-                return violations;
+            validate: function(covoModel) {
+                return covoModel.isRefinedBy.filter(r => utils.canReach(r.target, r.source, covoModel.isRefinedBy));
             }
         },
         {
             id: 'C3',
             name: 'Consistent refinement depth',
-            validate: function(covoModel, strict = true) {
-                // DETERMINE SCOPE
-                const scope = covoModel.elements.filter(utils.isLeaf);
-
-                // IDENTIFY VIOLATIONS
-                const dominantDepth = utils.getDominantDepth(scope);
-                const violations = scope.filter(e => utils.getLevel(e) !== dominantDepth);
-
-                return violations;
+            validate: function(covoModel) {
+                const leafs = covoModel.elements.filter(utils.isLeaf);
+                const dominantDepth = utils.getDominantDepth(leafs);
+                return leafs.filter(e => utils.getLevel(e) !== dominantDepth);
             }
         },
         {
@@ -290,7 +273,6 @@ var rules = (function() {
             id: 'V1',
             name: 'Completeness',
             validate: function(covoModel, referenceCovoModel) {
-                // TODO: wrong/unexpected validation results
                 const violations = $();
                 const lowestLevel = Math.max(...utils.getLevels(covoModel.elements));
                 const lowestElements = covoModel.elements.filter(e => utils.getLevel(e) === lowestLevel);

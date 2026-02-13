@@ -1,10 +1,15 @@
 var config = (function() {
 
+    function autoDetect(...types) {
+        for (const t of types) if (selection.find(t).size() > 0) return t;
+        return types.shift();
+    }
+
     const TYPES = {
-        stream: 'business-process', // or 'value-stream'
-        capability: 'business-function', // or 'capability'
-        object: 'business-object', // or 'resource'
-        refinement: 'composition-relationship' // The chosen relationship type may only be used for refinement
+        stream: autoDetect('value-stream', 'business-process'),
+        capability: autoDetect('capability', 'business-function'),
+        object: autoDetect('resource', 'business-object'),
+        refinement: autoDetect('composition-relationship', 'aggregation-relationship') // The chosen relationship type may only be used for refinement
     };
 
     // ASSUMED RELATIONSHIP DIRECTIONS:
