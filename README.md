@@ -1,18 +1,16 @@
 # COVO Validator for Archi
 
-## Automating Semantic Coherence in Business Architecture
+## Automating Semantic Coherence in Business Architecture Modeling
 
 The COVO Validator is a jArchi script designed to validate ArchiMate models against the Capability-Object-Value Ontology (COVO) method. It bridges the gap between organizational behavior (value streams and business capabilities) and structural assets (business objects) by enforcing formal semantic constraints.
 
 ## Key Features
 
-1. Progressive validation workflow
-   The tool supports the architect's natural workflow by offering two validation profiles:
+1. **Progressive validation workflow**. The tool supports the architect's natural workflow by offering two validation profiles:
    * **Construction mode**: context-aware validation for work-in-progress.
    * **Audit mode**: strict validation for release candidates.
 
-2. Heuristic view classification
-   No manual configuration required. The tool analyzes the structural content of your views to automatically apply the correct validation logic:
+2. **Heuristic view classification**. The tool analyzes the structural content of your views to automatically apply the correct validation logic:
    * **Top-Level Views**: containing only top-level elements.
    * **Value Stream Views**: where all the stages belong to the same top-level value stream.
      * **Value Stream Collections**: group of value stream views that share a common top-level value stream.
@@ -22,11 +20,9 @@ The COVO Validator is a jArchi script designed to validate ArchiMate models agai
 
    ![Validation scopes](scope.svg)
 
-3. Dialect-agnostic
-   Whether you use the Strategy Layer (Value Stream / Capability / Resource) or the Business Layer (Business Process / Business Function / Business Object), the tool automatically detects your modeling dialect and adjusts its internal logic accordingly.
+3. **Dialect-agnostic (zero-config)**. Whether you use the Strategy Layer (Value Stream / Capability / Resource), the Business Layer (Business Process / Business Function / Business Object), or a mix, the tool automatically detects your modeling dialect and adjusts its internal logic accordingly.
 
-4. Enterprise-Grade Performance
-   Validates complex models (~2000 elements, ~70 views) in < 15 seconds.
+4. **Enterprise-grade performance**. Validates complex models (~1000 elements, ~100 views) in < 15 seconds.
 
 ## Prerequisites
 
@@ -39,7 +35,7 @@ Download this repository as a ZIP file.
 Extract the contents into a folder on your system, for example:
 
 ```Text
-C:\Users\UserName\Downloads\COVO Validator\
+C:\Users\UserName\Downloads\COVO-Validator\
 ```
 
 To use this script inside Archi:
@@ -50,7 +46,7 @@ To use this script inside Archi:
 4. In the script editor, paste the following line (adjust the path if needed):
 
    ```javascript
-   load('C:/Users/UserName/Downloads/COVO Validator/main.js');
+   load('C:/Users/UserName/Downloads/COVO-Validator/main.js');
    ```
 
 5. Save the script
@@ -68,6 +64,7 @@ To use this script inside Archi:
 ======================================================================
                           VALIDATION REPORT
 ======================================================================
+
 OVERALL STATUS: FAILED
 
 VIOLATION SUMMARY:
@@ -85,6 +82,9 @@ Recommended fix order: C1-3, V1-2, C6-13, C4-5
  2 violations:
   - Integrate connection into energy grid (L1 value-stream) --> Perform connection work (L1 value-stream)
   - Perform work on energy grids (L1 capability) --> Work activity (L1 resource)
+
+
+Validation completed in 797 ms
 ```
 
 ## The COVO Logic (Briefly)
