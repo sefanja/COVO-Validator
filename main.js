@@ -3,7 +3,7 @@
 
     const views = selection.find('archimate-diagram-model').add(selection.filter('archimate-diagram-model'));
     if (views.size() === 0) {
-        window.alert("There are no views in the current selection.");
+        window.alert('There are no views in the current selection.');
         return;
     }
 
@@ -19,9 +19,9 @@
     // Initialize
     const start = Date.now();
 
-    load(__DIR__ + 'config.js');
-    load(__DIR__ + 'rules.js');
-    load(__DIR__ + 'utils.js');
+    load(`${__DIR__}config.js`);
+    load(`${__DIR__}rules.js`);
+    load(`${__DIR__}utils.js`);
 
     // Collect views for validation
     const topLevelViews = _EMPTY.clone();
@@ -110,14 +110,14 @@
         const covoModel = utils.buildCovoModel(views.find());
         const covoModelExtended = utils.buildCovoModel((topLevelViews.clone().add(views)).find());
         for (const rule of rules.filter(r => ['C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13'].includes(r.id))) {
-            const violations = rule.validate(rule.id === 'C4' ? covoModelExtended : covoModel, strict);
+            const violations = rule.validate(['C4', 'C9'].includes(rule.id) ? covoModelExtended : covoModel, strict);
             const violationCount = violations.size();
             if (violationCount > 0) {
                 valueStreamCollectionFailures.push({
                     rule: rule,
                     violations: violations,
                     violationCount: violationCount,
-                    streamName: $('#' + topStreamId).first().name
+                    streamName: $(`#${topStreamId}`).first().name
                 });
                 summary.totalViolations += violationCount;
                 summary.failed.add(rule.id);
@@ -128,7 +128,7 @@
     if (valueStreamCollectionFailures.length === 0) {
         for (const stage of valueStageZones) {
             for (const rule of rules.filter(r => ['C12', 'C13'].includes(r.id))) {
-                const violations = rule.validate(stage.context, true);
+                const violations = rule.validate(stage.context, strict);
                 const violationCount = violations.size();
                 if (violationCount > 0) {
                     valueStageZoneFailures.push({
@@ -204,8 +204,8 @@
     if (summary.totalViolations > 0) {
         console.log();
         console.log('VIOLATION SUMMARY:');
-        console.log(` - Total Violations: ${summary.totalViolations}`);
-        console.log(` - Rules Failed: ${[...summary.failed].join(', ')}`);
+        console.log(` - Rules failed: ${[...summary.failed].join(', ')}`);
+        console.log(` - Total violations: ${summary.totalViolations}`);
         console.log();
         console.log('Recommended fix order: C1-3, V1-2, C6-13, C4-5');
     }
@@ -218,7 +218,7 @@
         console.log('----------------------------------------------------------------------');
         for (const f of failures) {
             console.log();
-            console.log(` [!!] ${f.rule.id} - ${f.rule.name}${f.stageName ? ' - ' + f.stageName : ''}${f.streamName ? ' - ' + f.streamName : ''}${f.viewName ? ' - ' + f.viewName : ''}`);
+            console.log(` [!!] ${f.rule.id} - ${f.rule.name}${f.stageName ? ` - ${f.stageName}` : ''}${f.streamName ? ` - ${f.streamName}` : ''}${f.viewName ? ` - ${f.viewName}` : ''}`);
             console.log(' --------------------------------------------------');
             console.log(` ${f.violationCount} violations:`);
             let count = 0;

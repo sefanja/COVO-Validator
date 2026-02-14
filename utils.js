@@ -67,19 +67,25 @@ var utils = (function() {
 
     // --- HIERARCHY ---
 
+    // Cache to increase performance
     const parentsCache = {};
     const childrenCache = {};
+    const levelCache = {};
 
+    // Fill the cache
     model.find(config.TYPES.refinement).each(r => {
         const parent = r.source;
         const child = r.target;
-
         if (parentsCache[child.id] === undefined) parentsCache[child.id] = _EMPTY.clone();
-        parentsCache[child.id].add(parent);
-
         if (childrenCache[parent.id] === undefined) childrenCache[parent.id] = _EMPTY.clone();
+        parentsCache[child.id].add(parent);
         childrenCache[parent.id].add(child);
     });
+    // Cutoff childrenCache below the selected level
+    const selectedLevel = Math.max(...getLevels(getUniqueConcepts(selection.find('element'))));
+    for (const [parentId, children] of Object.entries(childrenCache))
+        if (getLevel(children.first()) > selectedLevel)
+            childrenCache[parentId] = _EMPTY.clone();
 
     /**
      * Traverses the 'refinement' hierarchy upwards to find the immediate parent.
@@ -170,6 +176,8 @@ var utils = (function() {
     function getLevel(concept) {
         const element = isRelationship(concept) ? concept.source : concept; // a relationships's level is determined by its source
 
+        if (levelCache[concept.id] !== undefined) return levelCache[concept.id];
+
         let depth = 0;
         let current = element;
         const visited = new Set();
@@ -182,6 +190,7 @@ var utils = (function() {
             depth++;
         }
 
+        levelCache[concept.id] = depth;
         return depth;
     }
 
