@@ -109,6 +109,7 @@ The tool works out-of-the-box, but you can tweak settings in config.js:
 * `rules.js`: Contains the logic for constraints C1-C13 and V1-V2.
 * `utils.js`: A library for graph traversal, caching, and COVO model projection.
 * `config.js`: Configuration and auto-detection logic.
+* `example.archimate`: A small and valid COVO example model.
 
 ## Citation
 

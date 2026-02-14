@@ -61,8 +61,9 @@
     console.show();
     console.log(`Starting COVO Validator in ${strict ? 'AUDIT' : 'CONSTRUCTION'} mode on:`);
     console.log(` - ${views.size()} views`);
-    console.log(` - ${globalCovoModel.elements.size()} elements`);
+    console.log(` - ${globalCovoModel.elements.size()} elements (${config.TYPES.stream}, ${config.TYPES.capability}, ${config.TYPES.object})`);
     console.log(` - ${globalCovoModel.horizontalRelationships.size()} horizontal relationships`);
+    console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships (${config.TYPES.refinement})`);
     console.log();
 
     const globalFailures = [];
@@ -218,7 +219,7 @@
         console.log('----------------------------------------------------------------------');
         for (const f of failures) {
             console.log();
-            console.log(` [!!] ${f.rule.id} - ${f.rule.name}${f.stageName ? ` - ${f.stageName}` : ''}${f.streamName ? ` - ${f.streamName}` : ''}${f.viewName ? ` - ${f.viewName}` : ''}`);
+            console.log(` [!!] ${f.rule.id} - ${f.rule.name}` + [f.stageName, f.streamName, f.viewName].map(s => s ? ` - ${s}` : '').join(''));
             console.log(' --------------------------------------------------');
             console.log(` ${f.violationCount} violations:`);
             let count = 0;
