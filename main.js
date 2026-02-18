@@ -42,12 +42,10 @@
             if (!valueStreamViewCollections[id]) valueStreamViewCollections[id] = _EMPTY.clone();
             valueStreamViewCollections[id].add(view);
             valueStreamViews.add(view);
-        } else if (strict) {
-            if (utils.identifyDomainHeader(covoModel)) {
-                objectDomainViews.add(view);
-            } else {
-                landscapeViews.add(view);
-            }
+        } else if (utils.identifyDomainHeader(covoModel)) {
+            objectDomainViews.add(view);
+        } else {
+            landscapeViews.add(view);
         }
     });
 
