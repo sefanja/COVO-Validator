@@ -59,9 +59,9 @@
     console.show();
     console.log(`Starting COVO Validator in ${strict ? 'AUDIT' : 'CONSTRUCTION'} mode on:`);
     console.log(` - ${views.size()} views`);
-    console.log(` - ${globalCovoModel.elements.size()} elements (${config.TYPES.stream}, ${config.TYPES.capability}, ${config.TYPES.object})`);
+    console.log(` - ${globalCovoModel.elements.size()} elements (${config.ELEMENT_TYPES.stream}, ${config.ELEMENT_TYPES.capability}, ${config.ELEMENT_TYPES.object})`);
     console.log(` - ${globalCovoModel.horizontalRelationships.size()} horizontal relationships`);
-    console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships (${config.TYPES.refinement})`);
+    console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships (${config.REL_TYPES.refinement})`);
     console.log();
 
     const globalFailures = [];
@@ -155,7 +155,7 @@
         for (let i = 0; i < lowestLevel - headerLevel; i++) {
             domainObjects = utils.getChildren(domainObjects);
         }
-        const domainIsBasedOn = domainObjects.rels().filter(r => r.type !== config.TYPES.refinement && r.source.type === config.TYPES.object && r.target.type === config.TYPES.object); // all rels in the entire model between and with domain objects
+        const domainIsBasedOn = domainObjects.rels().filter(r => r.type !== config.REL_TYPES.refinement && r.source.type === config.ELEMENT_TYPES.object && r.target.type === config.ELEMENT_TYPES.object); // all rels in the entire model between and with domain objects
         const collectionIsBasedOn = utils.getIntersection(valueStreamsCovoModel.isBasedOn, domainIsBasedOn); // rels scoped back to value stream and top-level views (what you select is what you get)
         const referenceContext = utils.buildCovoModel($(domainHeader).add(collectionIsBasedOn).add(collectionIsBasedOn.ends()));
 

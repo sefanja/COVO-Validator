@@ -30,7 +30,7 @@ var rules = (function() {
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.horizontalRelationships.filter(r =>
-                    !(r.source.type === config.TYPES.object && r.target.type === config.TYPES.object) // exclude objects
+                    !(r.source.type === config.ELEMENT_TYPES.object && r.target.type === config.ELEMENT_TYPES.object) // exclude objects
                 );
 
                 if (!strict) {
@@ -40,7 +40,7 @@ var rules = (function() {
                     // Exclude enabelement relations if we cannot check for the top-level value stream exception
                     const manifestationLevels = utils.getLevels(covoModel.isManifestedBy);
                     scope = scope.filter(r =>
-                        r.source.type === config.TYPES.capability && r.target.type === config.TYPES.capability
+                        r.source.type === config.ELEMENT_TYPES.capability && r.target.type === config.ELEMENT_TYPES.capability
                         ? manifestationLevels.has(utils.getLevel(r))
                         : true);
                 }
@@ -55,9 +55,8 @@ var rules = (function() {
                     if (!pSrc || !pTgt) return true;
                     if (pSrc.id === pTgt.id) return false;
 
-                    if (r.source.type === config.TYPES.capability && r.target.type === config.TYPES.capability) {
+                    if (r.source.type === config.ELEMENT_TYPES.capability && r.target.type === config.ELEMENT_TYPES.capability) {
                         // Exception if both parents are principal
-                        // TODO: within a common value stream
                         if (utils.isOverlapping(
                             utils.getRoots(utils.getTargets(pSrc, covoModel.isManifestedBy)),
                             utils.getRoots(utils.getTargets(pTgt, covoModel.isManifestedBy))
@@ -66,18 +65,18 @@ var rules = (function() {
                         if (utils.canReach(pTgt, pSrc, covoModel.enables)) return false;
                     }
 
-                    if (r.source.type === config.TYPES.stream && r.target.type === config.TYPES.stream) {
-                        // Exception for precedence cycles
-                        if (utils.canReach(pTgt, pSrc, covoModel.precedes)) return false;
-                        // Exception for redunant precedence paths
-                        if (utils.canReach(pSrc, pTgt, covoModel.precedes)) return false;
+                    if (r.source.type === config.ELEMENT_TYPES.stream && r.target.type === config.ELEMENT_TYPES.stream) {
+                        // Exception for affect cycles
+                        if (utils.canReach(pTgt, pSrc, covoModel.affects)) return false;
+                        // Exception for redunant affect paths
+                        if (utils.canReach(pSrc, pTgt, covoModel.affects)) return false;
                     }
 
-                    // Find matching parent relation
+                    // Find matching parent relationship
                     return covoModel.horizontalRelationships.filter(pR =>
-                        pR.type === r.type
-                        && pR.source.id === pSrc.id
+                        pR.source.id === pSrc.id
                         && pR.target.id === pTgt.id
+                        && (r.type !== config.REL_TYPES.coManifestsFor || r.type === pR.type)
                     ).size() === 0;
                 });
 
@@ -158,7 +157,7 @@ var rules = (function() {
                 }
 
                 // IDENTIFY VIOLATIONS
-                const violations = scope.filter(e => !utils.canReach(e, config.TYPES.stream, covoModel.enables.clone().add(covoModel.isManifestedBy)));
+                const violations = scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enables.clone().add(covoModel.isManifestedBy)));
 
                 return violations;
             }
@@ -201,7 +200,7 @@ var rules = (function() {
             name: 'Value stream-driven dependencies',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
-                let scope = covoModel.precedes.clone();
+                let scope = covoModel.affects.clone();
 
                 if (!strict) {
                     scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.isManifestedBy, covoModel.transforms));
@@ -246,7 +245,7 @@ var rules = (function() {
                 let scope = covoModel.isBasedOn.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.transforms, covoModel.enables, covoModel.isManifestedBy, covoModel.precedes));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.transforms, covoModel.enables, covoModel.isManifestedBy, covoModel.affects));
                 }
 
                 // IDENTIFY VIOLATIONS
@@ -256,12 +255,12 @@ var rules = (function() {
                     if (utils.isOverlapping(srcCaps, tgtCaps)) return false ; // (1) same capability
 
                     const enabledCaps = utils.getTargets(tgtCaps, covoModel.enables);
-                    if (utils.isOverlapping(enabledCaps, srcCaps)) return false; // (2) enablement
+                    if (utils.isOverlapping(enabledCaps, srcCaps)) return false; // (2) enables
 
                     const srcStages = utils.getTargets(srcCaps, covoModel.isManifestedBy);
                     const tgtStages = utils.getTargets(tgtCaps, covoModel.isManifestedBy);
-                    const sucStages = utils.getTargets(tgtStages, covoModel.precedes);
-                    if (utils.isOverlapping(sucStages, srcStages)) return false; // (3) precedence
+                    const sucStages = utils.getTargets(tgtStages, covoModel.affects);
+                    if (utils.isOverlapping(sucStages, srcStages)) return false; // (3) affects
 
                     return true;
                 });
@@ -277,13 +276,13 @@ var rules = (function() {
                 const lowestLevel = Math.max(...utils.getLevels(covoModel.elements));
                 const lowestElements = covoModel.elements.filter(e => utils.getLevel(e) === lowestLevel);
                 const lowestRelationships = covoModel.horizontalRelationships.filter(r => utils.getLevel(r) === lowestLevel);
-                const configuredTypes = Object.entries(config.TYPES).map(([_, v]) => v);
-                configuredTypes.forEach(t1 => {
+                const configuredElementTypes = Object.entries(config.ELEMENT_TYPES).map(([_, v]) => v);
+                configuredElementTypes.forEach(t1 => {
                     const elementsOfType = lowestElements.filter(t1);
                     if (elementsOfType.size() > 0) {
                         violations.add(referenceCovoModel.elements.filter(e => utils.getLevel(e) === lowestLevel && e.type === t1).not(elementsOfType));
                     }
-                    configuredTypes.forEach(t2 => {
+                    configuredElementTypes.forEach(t2 => {
                         const relationshipsOfType = lowestRelationships.filter(r => r.source.type === t1 && r.target.type === t2);
                         if (relationshipsOfType.size() > 0) {
                             violations.add(referenceCovoModel.horizontalRelationships.filter(r => utils.getLevel(r) === lowestLevel && r.source.type === t1 && r.target.type === t2).not(relationshipsOfType));

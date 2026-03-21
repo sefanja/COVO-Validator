@@ -73,7 +73,7 @@ var utils = (function() {
     const levelCache = {};
 
     // Fill the cache
-    model.find(config.TYPES.refinement).each(r => {
+    model.find(config.REL_TYPES.isRefinedBy).each(r => {
         const parent = r.source;
         const child = r.target;
         if (parentsCache[child.id] === undefined) parentsCache[child.id] = _EMPTY.clone();
@@ -285,7 +285,7 @@ var utils = (function() {
      * Implements a breadth-first search (BFS) to determine reachability between elements.
      * Used for cycle detection and verifying indirect dependencies across a graph.
      * @param {ArchiMateElement} source - Starting node.
-     * @param {ArchiMateElement|string} targetCriteria - Target element or ArchiMate type string.
+     * @param {ArchiMateElement|jArchiCollection|string} targetCriteria - Target element, collection of targets, or ArchiMate type string.
      * @param {jArchiCollection} scope - The set of relationships allowed for traversal.
      * @returns {boolean}
      */
@@ -293,7 +293,7 @@ var utils = (function() {
         const queue = [source];
         const visited = new Set([source.id]);
         const isTypeSearch = typeof targetCriteria === 'string';
-        const targetId = isTypeSearch ? null : targetCriteria.id;
+        const targetIds = isTypeSearch ? null : new Set(wrap(targetCriteria).map(e => e.id));
 
         while (queue.length > 0) {
             const current = queue.shift();
@@ -303,7 +303,7 @@ var utils = (function() {
             if (isTypeSearch) {
                 if (current.id !== source.id && current.type === targetCriteria) return true;
             } else {
-                if (current.id === targetId) return true;
+                if (targetIds.has(current.id)) return true;
             }
 
             // Explore neighbors using the provided scope
@@ -369,31 +369,32 @@ var utils = (function() {
             relationships: _EMPTY.clone(),
             horizontalRelationships: _EMPTY.clone(),
             isRefinedBy: _EMPTY.clone(),
-            precedes: _EMPTY.clone(),
+            affects: _EMPTY.clone(),
             enables: _EMPTY.clone(),
+            coManifestsFor: _EMPTY.clone(),
             isBasedOn: _EMPTY.clone(),
             isManifestedBy: _EMPTY.clone(),
             transforms: _EMPTY.clone()
         };
 
-        const configuredTypes = Object.entries(config.TYPES).map(([_, v]) => v);
+        const configuredElementTypes = Object.entries(config.ELEMENT_TYPES).map(([_, v]) => v);
 
         rawElements.each(e => {
-            if (!configuredTypes.includes(e.type)) return;
+            if (!configuredElementTypes.includes(e.type)) return;
             context.concepts.add(e);
             context.elements.add(e);
             switch (e.type) {
-                case config.TYPES.stream: context.streams.add(e); break;
-                case config.TYPES.capability: context.capabilities.add(e); break;
-                case config.TYPES.object: context.objects.add(e); break
+                case config.ELEMENT_TYPES.stream: context.streams.add(e); break;
+                case config.ELEMENT_TYPES.capability: context.capabilities.add(e); break;
+                case config.ELEMENT_TYPES.object: context.objects.add(e); break
             }
         });
 
         rawRelationships.each(r => {
-            if (!configuredTypes.includes(r.source.type) || !configuredTypes.includes(r.target.type)) return;
+            if (!configuredElementTypes.includes(r.source.type) || !configuredElementTypes.includes(r.target.type)) return;
             context.concepts.add(r);
 
-            if (r.type === config.TYPES.refinement) {
+            if (r.type === config.REL_TYPES.isRefinedBy) {
                 context.isRefinedBy.add(r);
             } else {
                 context.horizontalRelationships.add(r);
@@ -402,13 +403,14 @@ var utils = (function() {
                 const t = r.target.type;
                 if (s === t) {
                     switch (s) {
-                        case config.TYPES.stream: context.precedes.add(r); break;
-                        case config.TYPES.capability: context.enables.add(r); break;
-                        case config.TYPES.object: context.isBasedOn.add(r); break;
+                        case config.ELEMENT_TYPES.stream: context.affects.add(r); break;
+                        case config.ELEMENT_TYPES.capability: context.enables.add(r);
+                            if (r.type === config.REL_TYPES.coManifestsFor) context.coManifestsFor.add(r); break;
+                        case config.ELEMENT_TYPES.object: context.isBasedOn.add(r); break;
                     }
-                } else if (s === config.TYPES.capability && t === config.TYPES.stream) {
+                } else if (s === config.ELEMENT_TYPES.capability && t === config.ELEMENT_TYPES.stream) {
                     context.isManifestedBy.add(r);
-                } else if (s === config.TYPES.capability && t === config.TYPES.object) {
+                } else if (s === config.ELEMENT_TYPES.capability && t === config.ELEMENT_TYPES.object) {
                     context.transforms.add(r);
                 }
             }
@@ -469,7 +471,7 @@ var utils = (function() {
             if (allVisualElements.size() === 0) return;
 
             const viewLevel = Math.max(...getLevels(getUniqueConcepts(allVisualElements)));
-            const visualStages = allVisualElements.find(config.TYPES.stream)
+            const visualStages = allVisualElements.find(config.ELEMENT_TYPES.stream)
                 .filter(s => getLevel(s.concept) === viewLevel)
                 .map(s => {
                     const [left, right] = getHorizontalSpan(s);
