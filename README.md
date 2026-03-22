@@ -70,8 +70,8 @@ To use this script inside Archi:
 OVERALL STATUS: FAILED
 
 VIOLATION SUMMARY:
- - Constraints failed: C4
- - Total violations: 2
+ - Constraints failed: C5
+ - Total violations: 1
 
 ----------------------------------------------------------------------
                    VALUE STREAM COLLECTION FAILURES
