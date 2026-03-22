@@ -351,16 +351,16 @@ var utils = (function() {
     // --- VIEW & CONTEXT ---
 
     /**
-     * Segregates a raw collection of ArchiMate concepts into a structured context object.
+     * Segregates a raw collection of ArchiMate concepts into a structured COVO model.
      * Categorizes elements and relationships based on types defined in config.js.
      * @param {jArchiCollection} collection - Raw input from a view or selection.
-     * @returns {Object} context containing categorized sub-collections.
+     * @returns {Object} COVO model containing categorized sub-collections.
      */
     function buildCovoModel(collection) {
         const rawElements = getUniqueConcepts(collection.filter('element'));
         const rawRelationships = getUniqueConcepts(collection.filter('relationship'));
 
-        const context = {
+        const covoModel = {
             concepts: _EMPTY.clone(),
             elements: _EMPTY.clone(),
             streams: _EMPTY.clone(),
@@ -381,64 +381,64 @@ var utils = (function() {
 
         rawElements.each(e => {
             if (!configuredElementTypes.includes(e.type)) return;
-            context.concepts.add(e);
-            context.elements.add(e);
+            covoModel.concepts.add(e);
+            covoModel.elements.add(e);
             switch (e.type) {
-                case config.ELEMENT_TYPES.stream: context.streams.add(e); break;
-                case config.ELEMENT_TYPES.capability: context.capabilities.add(e); break;
-                case config.ELEMENT_TYPES.object: context.objects.add(e); break
+                case config.ELEMENT_TYPES.stream: covoModel.streams.add(e); break;
+                case config.ELEMENT_TYPES.capability: covoModel.capabilities.add(e); break;
+                case config.ELEMENT_TYPES.object: covoModel.objects.add(e); break
             }
         });
 
         rawRelationships.each(r => {
             if (!configuredElementTypes.includes(r.source.type) || !configuredElementTypes.includes(r.target.type)) return;
-            context.concepts.add(r);
+            covoModel.concepts.add(r);
 
             if (r.type === config.REL_TYPES.isRefinedBy) {
-                context.isRefinedBy.add(r);
+                covoModel.isRefinedBy.add(r);
             } else {
-                context.horizontalRelationships.add(r);
+                covoModel.horizontalRelationships.add(r);
 
                 const s = r.source.type;
                 const t = r.target.type;
                 if (s === t) {
                     switch (s) {
-                        case config.ELEMENT_TYPES.stream: context.affects.add(r); break;
-                        case config.ELEMENT_TYPES.capability: context.enables.add(r);
-                            if (r.type === config.REL_TYPES.coManifestsFor) context.coManifestsFor.add(r); break;
-                        case config.ELEMENT_TYPES.object: context.isBasedOn.add(r); break;
+                        case config.ELEMENT_TYPES.stream: covoModel.affects.add(r); break;
+                        case config.ELEMENT_TYPES.capability: covoModel.enables.add(r);
+                            if (r.type === config.REL_TYPES.coManifestsFor) covoModel.coManifestsFor.add(r); break;
+                        case config.ELEMENT_TYPES.object: covoModel.isBasedOn.add(r); break;
                     }
                 } else if (s === config.ELEMENT_TYPES.capability && t === config.ELEMENT_TYPES.stream) {
-                    context.isManifestedBy.add(r);
+                    covoModel.isManifestedBy.add(r);
                 } else if (s === config.ELEMENT_TYPES.capability && t === config.ELEMENT_TYPES.object) {
-                    context.transforms.add(r);
+                    covoModel.transforms.add(r);
                 }
             }
         });
 
-        return context;
+        return covoModel;
     }
 
     /**
      * Heuristic for identifying an Object Domain View and returning the domain header.
      * Criteria: Exactly two abstraction levels present, with a single dominant 'Domain Object' at the top level.
-     * @param {Object} context - The context of the view.
+     * @param {Object} covoModel - The COVO model of the view.
      * @returns {ArchiMateElement|undefined} The identified Domain Header concept (high-level object).
      */
-    function identifyDomainHeader(context) {
-        const levels = getLevels(context.objects);
-        const highestLevel = Math.min(...getLevels(context.objects));
-        const highestObjects = context.objects.filter(e => getLevel(e) === highestLevel);
-        if (context.isBasedOn.size() > 0 && levels.size === 2 && highestObjects.size() === 1) return highestObjects.first();
+    function identifyDomainHeader(covoModel) {
+        const levels = getLevels(covoModel.objects);
+        const highestLevel = Math.min(...getLevels(covoModel.objects));
+        const highestObjects = covoModel.objects.filter(e => getLevel(e) === highestLevel);
+        if (covoModel.isBasedOn.size() > 0 && levels.size === 2 && highestObjects.size() === 1) return highestObjects.first();
     }
 
     /**
-     * Returns the singular top-level value stream if present in the context.
-     * @param {Object} context 
+     * Returns the singular top-level value stream if present in the COVO model.
+     * @param {Object} covoModel
      * @returns {ArchiMateElement|undefined}
      */
-    function getTopValueStream(context) {
-        const topStreams = getRoots(context.streams);
+    function getTopValueStream(covoModel) {
+        const topStreams = getRoots(covoModel.streams);
         if (topStreams.size() === 1) return topStreams.first();
     }
 
@@ -461,7 +461,7 @@ var utils = (function() {
      * Derives 'Value Stage Zones' using spatial/geometric heuristics.
      * Groups elements based on horizontal overlap with value stream stages.
      * @param {jArchiCollection} views - A collection of diagrams to analyze.
-     * @returns {Array<Object>} List of zones with names, view references, and local contexts.
+     * @returns {Array<Object>} List of zones with names, view references, and local COVO models.
      */
     function getValueStageZones(views) {
         const valueStageZones = [];
@@ -496,11 +496,11 @@ var utils = (function() {
                 if (s.elements.size() === 0) return;
                 const ids = s.elements.map(e => e.id);
                 const stageRels = s.elements.rels().filter(r => ids.includes(r.source.id) && ids.includes(r.target.id));
-                const stageContext = buildCovoModel(s.elements.add(stageRels));
+                const stageCovoModel = buildCovoModel(s.elements.add(stageRels));
                 valueStageZones.push({
                     name: s.name, 
                     viewName: view.name, 
-                    context: stageContext
+                    covoModel: stageCovoModel
                 });
             }
         });
@@ -516,8 +516,23 @@ var utils = (function() {
      * @returns {string} A formatted type string.
      */
     function formatType(t) {
-        if (!t) return "";
         return t.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    /**
+     * Formats an ArchiMate concept (element or relationship) into a standardized string 
+     * for reporting, including names, hierarchy levels, and formatted types.
+     * 
+     * Example output (element): 'Billing' (L2 Capability)
+     * Example output (relationship): 'Create Invoice' (L3 Value Stream) --> 'Invoice' (L3 Business Object)
+     * 
+     * @param {object} c - The jArchi concept object (element or relationship).
+     * @returns {string} A human-readable string representation of the concept.
+     */
+    function formatConcept(c) {
+        return isRelationship(c)
+        ? `'${c.source.name}' (L${getLevel(c.source)} ${formatType(c.source.type)}) --> '${c.target.name}' (L${getLevel(c.target)} ${formatType(c.target.type)})`
+        : `'${c.name}' (L${getLevel(c)} ${formatType(c.type)})`;
     }
 
     return {
@@ -556,7 +571,7 @@ var utils = (function() {
         getValueStageZones: getValueStageZones,
 
         // UI
-        formatType: formatType
+        formatConcept: formatConcept
     };
 
 })();

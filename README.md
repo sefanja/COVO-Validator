@@ -24,6 +24,8 @@ The COVO Validator is a jArchi script designed to validate ArchiMate models agai
 
 4. **Enterprise-grade performance**. Validates complex models (~1000 elements, ~100 views) in < 15 seconds.
 
+5. **Smart Noise Reduction**. To prevent "cascading failures," the validator identifies root causes. If a fundamental constraint (like hierarchy) fails, the tool automatically hides derivative violations, allowing the architect to focus on fixing the primary structural issues first.
+
 ## Prerequisites
 
 [Archi](https://www.archimatetool.com/) with the jArchi plugin installed.
@@ -68,21 +70,16 @@ To use this script inside Archi:
 OVERALL STATUS: FAILED
 
 VIOLATION SUMMARY:
- - Rules failed: C4
+ - Constraints failed: C4
  - Total violations: 2
-
-Recommended fix order: C1-3, V1-2, C6-13, C4-5
 
 ----------------------------------------------------------------------
                    VALUE STREAM COLLECTION FAILURES
 ----------------------------------------------------------------------
 
- [!!] C4 - Upward coherence - Connect users to the grid
-      Advice: Add a corresponding relationship between the parent elements.
+ [!!] C5 - Downward coherence - Connect users to the grid
  --------------------------------------------------
- 2 violations:
-  - Integrate connection into energy grid (L1 Value Stream) --> Perform connection work (L1 Value Stream)
-  - Perform work on energy grids (L1 Capability) --> Work activity (L1 Business Object)
+ 'Integrate connection into energy grid' (L1 Value Stream) --> 'Perform connection work' (L1 Value Stream) does not have a corresponding relationship between their children.
 
 
 Validation completed in 797 ms
@@ -90,7 +87,7 @@ Validation completed in 797 ms
 
 ## The COVO Logic (Briefly)
 
-The tool enforces 13 constraints (C1-13) and 2 view rules (V1-2) based on the principle of semantic symmetry:
+The tool enforces 15 constraints (C1-13, V1-2) based on the principle of semantic symmetry:
 
 * **Behavior implies structure**: If stage A triggers stage B or capability A enables capability B, then their objects have a status dependency.
 * **Structure validates behavior**: If the structural dependency is missing, the behavioral logic is considered invalid.
@@ -107,7 +104,7 @@ The tool works out-of-the-box, but you can tweak settings in config.js:
 ## Project Structure
 
 * `main.js`: Entry point. Handles user interaction, scope collection, and report generation.
-* `rules.js`: Contains the logic for constraints C1-C13 and V1-V2.
+* `constraints.js`: Contains the logic for constraints C1-13 and V1-2.
 * `utils.js`: A library for graph traversal, caching, and COVO model projection.
 * `config.js`: Configuration and auto-detection logic.
 * `example.archimate`: A small and valid COVO example model.

@@ -20,7 +20,7 @@
     const start = Date.now();
 
     load(`${__DIR__}config.js`);
-    load(`${__DIR__}rules.js`);
+    load(`${__DIR__}constraints.js`);
     load(`${__DIR__}utils.js`);
 
     // Collect views for validation
@@ -73,34 +73,36 @@
 
     const summary = { failed: new Set(), totalViolations: 0 };
 
-    for (const rule of rules.filter(r => ['C1', 'C2', 'C3'].includes(r.id))) {
-        const violations = rule.validate(globalCovoModel);
-        const violationCount = violations.size();
+    for (const constraint of constraints.filter(r => ['C1', 'C2', 'C3'].includes(r.id))) {
+        const result = constraint.validate(globalCovoModel);
+        const violationCount = result.violations.size();
         if (violationCount > 0) {
             globalFailures.push({
-                rule: rule,
-                violations: violations,
-                violationCount: violationCount
+                constraint: constraint,
+                violations: result.violations,
+                violationCount: violationCount,
+                context: result.context
             });
             summary.totalViolations += violationCount;
-            summary.failed.add(rule.id);
+            summary.failed.add(constraint.id);
         }
     }
 
     for (const view of topLevelViews) {
         const covoModel = utils.buildCovoModel($(view).find());
-        for (const rule of rules.filter(r => ['C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13'].includes(r.id))) {
-            const violations = rule.validate(covoModel, true);
-            const violationCount = violations.size();
+        for (const constraint of constraints.filter(r => ['C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13'].includes(r.id))) {
+            const result = constraint.validate(covoModel, true);
+            const violationCount = result.violations.size();
             if (violationCount > 0) {
                 topLevelFailures.push({
-                    rule: rule,
-                    violations: violations,
+                    constraint: constraint,
+                    violations: result.violations,
                     violationCount: violationCount,
+                    context: result.context,
                     viewName: view.name
                 });
                 summary.totalViolations += violationCount;
-                summary.failed.add(rule.id);
+                summary.failed.add(constraint.id);
             }
         }
     }
@@ -108,37 +110,39 @@
     for (const [topStreamId, views] of Object.entries(valueStreamViewCollections)) {
         const covoModel = utils.buildCovoModel(views.find());
         const covoModelExtended = utils.buildCovoModel((topLevelViews.clone().add(views)).find());
-        for (const rule of rules.filter(r => ['C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13'].includes(r.id))) {
-            const violations = rule.validate(['C4', 'C9'].includes(rule.id) ? covoModelExtended : covoModel, strict);
-            const violationCount = violations.size();
+        for (const constraint of constraints.filter(r => ['C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13'].includes(r.id))) {
+            const result = constraint.validate(['C4', 'C9'].includes(constraint.id) ? covoModelExtended : covoModel, strict);
+            const violationCount = result.violations.size();
             if (violationCount > 0) {
                 valueStreamCollectionFailures.push({
-                    rule: rule,
-                    violations: violations,
+                    constraint: constraint,
+                    violations: result.violations,
                     violationCount: violationCount,
+                    context: result.context,
                     streamName: $(`#${topStreamId}`).first().name
                 });
                 summary.totalViolations += violationCount;
-                summary.failed.add(rule.id);
+                summary.failed.add(constraint.id);
             }
         }
     }
 
     if (valueStreamCollectionFailures.length === 0) {
         for (const stage of valueStageZones) {
-            for (const rule of rules.filter(r => ['C12', 'C13'].includes(r.id))) {
-                const violations = rule.validate(stage.context, strict);
-                const violationCount = violations.size();
+            for (const constraint of constraints.filter(r => ['C12', 'C13'].includes(r.id))) {
+                const result = constraint.validate(stage.covoModel, strict);
+                const violationCount = result.violations.size();
                 if (violationCount > 0) {
                     valueStageZoneFailures.push({
-                        rule: rule,
-                        violations: violations,
+                        constraint: constraint,
+                        violations: result.violations,
                         violationCount: violationCount,
+                        context: result.context,
                         viewName: stage.viewName,
                         stageName: stage.name
                     });
                     summary.totalViolations += violationCount;
-                    summary.failed.add(rule.id);
+                    summary.failed.add(constraint.id);
                 }
             }
         }
@@ -159,36 +163,38 @@
         const collectionIsBasedOn = utils.getIntersection(valueStreamsCovoModel.isBasedOn, domainIsBasedOn); // rels scoped back to value stream and top-level views (what you select is what you get)
         const referenceContext = utils.buildCovoModel($(domainHeader).add(collectionIsBasedOn).add(collectionIsBasedOn.ends()));
 
-        for (const rule of rules.filter(r => ['V1', 'V2'].includes(r.id))) {
-            const violations = rule.validate(covoModel, referenceContext);
-            const violationCount = violations.size();
+        for (const constraint of constraints.filter(r => ['V1', 'V2'].includes(r.id))) {
+            const result = constraint.validate(covoModel, referenceContext);
+            const violationCount = result.violations.size();
             if (violationCount > 0) {
                 objectDomainViewFailures.push({
-                    rule: rule,
-                    violations: violations,
+                    constraint: constraint,
+                    violations: result.violations,
                     violationCount: violationCount,
+                    context: result.context,
                     viewName: view.name
                 });
                 summary.totalViolations += violationCount;
-                summary.failed.add(rule.id);
+                summary.failed.add(constraint.id);
             }
         }
     }
 
     for (const view of landscapeViews) {
         const covoModel = utils.buildCovoModel($(view).find());
-        for (const rule of rules.filter(r => ['V1', 'V2'].includes(r.id))) {
-            const violations = rule.validate(covoModel, valueStreamsCovoModel);
-            const violationCount = violations.size();
+        for (const constraint of constraints.filter(r => ['V1', 'V2'].includes(r.id))) {
+            const result = constraint.validate(covoModel, valueStreamsCovoModel);
+            const violationCount = result.violations.size();
             if (violationCount > 0) {
                 landscapeViewFailures.push({
-                    rule: rule,
-                    violations: violations,
+                    constraint: constraint,
+                    violations: result.violations,
                     violationCount: violationCount,
+                    context: result.context,
                     viewName: view.name
                 });
                 summary.totalViolations += violationCount;
-                summary.failed.add(rule.id);
+                summary.failed.add(constraint.id);
             }
         }
     }
@@ -203,10 +209,8 @@
     if (summary.totalViolations > 0) {
         console.log();
         console.log('VIOLATION SUMMARY:');
-        console.log(` - Rules failed: ${[...summary.failed].join(', ')}`);
+        console.log(` - Constraint failed: ${[...summary.failed].join(', ')}`);
         console.log(` - Total violations: ${summary.totalViolations}`);
-        console.log();
-        console.log('Recommended fix order: C1-3, V1-2, C6-13, C4-5');
     }
 
     function reportFailures(failures, title) {
@@ -217,15 +221,22 @@
         console.log('----------------------------------------------------------------------');
         for (const f of failures) {
             console.log();
-            console.log(` [!!] ${f.rule.id} - ${f.rule.name}` + [f.stageName, f.streamName, f.viewName].map(s => s ? ` - ${s}` : '').join(''));
-            console.log(`      Advice: ${f.rule.advice}`);
+            console.log(` [!!] ${f.constraint.id} - ${f.constraint.name}` + [f.stageName, f.streamName, f.viewName].map(s => s ? ` - ${s}` : '').join(''));
             console.log(' --------------------------------------------------');
-            console.log(` ${f.violationCount} violations:`);
+
+            const blockingConstraints = (f.constraint.dependsOn || []).filter(id => summary.failed.has(id));
+            if (blockingConstraints.length > 0) {
+                console.log(` Found ${f.violationCount} violations, but results are hidden.`);
+                console.log(` Please fix these constraints first: ${blockingConstraints.join(', ')}`);
+                console.log();
+                continue;
+            }
+
             let count = 0;
             f.violations.each(v => {
                 if(count < config.VIOLATION_EXAMPLES) {
-                    if (utils.isRelationship(v)) console.log(`  - ${v.source.name} (L${utils.getLevel(v.source)} ${utils.formatType(v.source.type)}) --> ${v.target.name} (L${utils.getLevel(v.target)} ${utils.formatType(v.target.type)})`);
-                    else console.log(`  - ${v.name} (L${utils.getLevel(v)} ${utils.formatType(v.type)})`);
+                    if (count === 0) console.log(` ${f.constraint.describe(v, f.context)}${f.violationCount > 1 ? ' This also applies to:' : ''}`);
+                    else console.log(`  - ${utils.formatConcept(v)}`);
                     count++;
                 }
             });
