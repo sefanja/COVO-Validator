@@ -78,10 +78,11 @@ Recommended fix order: C1-3, V1-2, C6-13, C4-5
 ----------------------------------------------------------------------
 
  [!!] C4 - Upward coherence - Connect users to the grid
+      Advice: Add a corresponding relationship between the parent elements.
  --------------------------------------------------
  2 violations:
-  - Integrate connection into energy grid (L1 value-stream) --> Perform connection work (L1 value-stream)
-  - Perform work on energy grids (L1 capability) --> Work activity (L1 resource)
+  - Integrate connection into energy grid (L1 Value Stream) --> Perform connection work (L1 Value Stream)
+  - Perform work on energy grids (L1 Capability) --> Work activity (L1 Business Object)
 
 
 Validation completed in 797 ms
