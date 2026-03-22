@@ -4,6 +4,7 @@ var rules = (function() {
         {
             id: 'C1',
             name: 'Unique parent',
+            advice: 'Remove a relationship with one of its parents.',
             validate: function(covoModel) {
                 return covoModel.elements.filter(utils.hasMultipleParents);
             }
@@ -11,6 +12,7 @@ var rules = (function() {
         {
             id: 'C2',
             name: 'Acyclicity',
+            advice: 'Remove a parent-child relationship to break the cycle.',
             validate: function(covoModel) {
                 return covoModel.isRefinedBy.filter(r => utils.canReach(r.target, r.source, covoModel.isRefinedBy));
             }
@@ -18,6 +20,7 @@ var rules = (function() {
         {
             id: 'C3',
             name: 'Consistent refinement depth',
+            advice: 'Either remove or complete the lowest-level elements.',
             validate: function(covoModel) {
                 const leafs = covoModel.elements.filter(utils.isLeaf);
                 const dominantDepth = utils.getDominantDepth(leafs);
@@ -27,6 +30,7 @@ var rules = (function() {
         {
             id: 'C4',
             name: 'Upward coherence',
+            advice: 'Add a corresponding relationship between the parent elements.',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.horizontalRelationships.filter(r =>
@@ -86,6 +90,7 @@ var rules = (function() {
         {
             id: 'C5',
             name: 'Downward coherence',
+            advice: 'Add a corresponding relationship between one of their children.',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.horizontalRelationships.clone();
@@ -112,6 +117,7 @@ var rules = (function() {
         {
             id: 'C6',
             name: 'Capability impact',
+            advice: 'Link each capability to an object.',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.capabilities.clone();
@@ -130,6 +136,7 @@ var rules = (function() {
         {
             id: 'C7',
             name: 'Object relevance',
+            advice: 'Link each object to a capability.',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.objects.clone();
@@ -148,6 +155,7 @@ var rules = (function() {
         {
             id: 'C8',
             name: 'Capability purpose',
+            advice: 'Link each capability to a value stream, either directly or indirectly through other capabilities.',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.capabilities.clone();
@@ -165,6 +173,7 @@ var rules = (function() {
         {
             id: 'C9',
             name: 'Traceability',
+            advice: 'Link each value stream (stage) to exactly one capability.',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.streams.clone();
@@ -180,6 +189,7 @@ var rules = (function() {
         {
             id: 'C10',
             name: 'Exclusive manifestation',
+            advice: 'Merge the stages that manifest the same principal capability.',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.capabilities.clone();
@@ -197,7 +207,8 @@ var rules = (function() {
         },
         {
             id: 'C11',
-            name: 'Value stream-driven dependencies',
+            name: 'Grounded value stream dependencies',
+            advice: 'Add a corresponding object relationship.',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.affects.clone();
@@ -218,7 +229,8 @@ var rules = (function() {
         },
         {
             id: 'C12',
-            name: 'Capability-driven dependencies',
+            name: 'Grounded capability dependencies',
+            advice: 'Add a corresponding object relationship.',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.enables.clone();
@@ -239,7 +251,8 @@ var rules = (function() {
         },
         {
             id: 'C13',
-            name: 'Grounded dependencies',
+            name: 'Justified object dependencies',
+            advice: 'Add a corresponding stage or capability relationship.',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.isBasedOn.clone();
@@ -271,6 +284,7 @@ var rules = (function() {
         {
             id: 'V1',
             name: 'Completeness',
+            advice: 'Add these concepts to the view.',
             validate: function(covoModel, referenceCovoModel) {
                 const violations = $();
                 const lowestLevel = Math.max(...utils.getLevels(covoModel.elements));
@@ -295,6 +309,7 @@ var rules = (function() {
         {
             id: 'V2',
             name: 'Justification',
+            advice: 'Remove these concepts from the view.',
             validate: function(covoModel, referenceCovoModel) {
                 return covoModel.elements.clone().add(covoModel.horizontalRelationships).not(referenceCovoModel.concepts);
             }

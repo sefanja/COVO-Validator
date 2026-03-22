@@ -508,6 +508,18 @@ var utils = (function() {
         return valueStageZones;
     }
 
+    // --- UI ---
+
+    /**
+     * Formats a raw Archi type (e.g. 'business-process' to 'Business Process').
+     * @param {string} t 
+     * @returns {string} A formatted type string.
+     */
+    function formatType(t) {
+        if (!t) return "";
+        return t.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
     return {
         // Core utilities
         isRelationship: isRelationship,
@@ -542,6 +554,9 @@ var utils = (function() {
         identifyDomainHeader: identifyDomainHeader,
         getTopValueStream: getTopValueStream,
         getValueStageZones: getValueStageZones,
+
+        // UI
+        formatType: formatType
     };
 
 })();

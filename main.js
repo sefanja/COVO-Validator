@@ -61,7 +61,7 @@
     console.log(` - ${views.size()} views`);
     console.log(` - ${globalCovoModel.elements.size()} elements (${config.ELEMENT_TYPES.stream}, ${config.ELEMENT_TYPES.capability}, ${config.ELEMENT_TYPES.object})`);
     console.log(` - ${globalCovoModel.horizontalRelationships.size()} horizontal relationships`);
-    console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships (${config.REL_TYPES.refinement})`);
+    console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships (${config.REL_TYPES.isRefinedBy})`);
     console.log();
 
     const globalFailures = [];
@@ -155,7 +155,7 @@
         for (let i = 0; i < lowestLevel - headerLevel; i++) {
             domainObjects = utils.getChildren(domainObjects);
         }
-        const domainIsBasedOn = domainObjects.rels().filter(r => r.type !== config.REL_TYPES.refinement && r.source.type === config.ELEMENT_TYPES.object && r.target.type === config.ELEMENT_TYPES.object); // all rels in the entire model between and with domain objects
+        const domainIsBasedOn = domainObjects.rels().filter(r => r.type !== config.REL_TYPES.isRefinedBy && r.source.type === config.ELEMENT_TYPES.object && r.target.type === config.ELEMENT_TYPES.object); // all rels in the entire model between and with domain objects
         const collectionIsBasedOn = utils.getIntersection(valueStreamsCovoModel.isBasedOn, domainIsBasedOn); // rels scoped back to value stream and top-level views (what you select is what you get)
         const referenceContext = utils.buildCovoModel($(domainHeader).add(collectionIsBasedOn).add(collectionIsBasedOn.ends()));
 
@@ -218,16 +218,18 @@
         for (const f of failures) {
             console.log();
             console.log(` [!!] ${f.rule.id} - ${f.rule.name}` + [f.stageName, f.streamName, f.viewName].map(s => s ? ` - ${s}` : '').join(''));
+            console.log(`      Advice: ${f.rule.advice}`);
             console.log(' --------------------------------------------------');
             console.log(` ${f.violationCount} violations:`);
             let count = 0;
             f.violations.each(v => {
                 if(count < config.VIOLATION_EXAMPLES) {
-                    if (utils.isRelationship(v)) console.log(`  - ${v.source.name} (L${utils.getLevel(v.source)} ${v.source.type}) --> ${v.target.name} (L${utils.getLevel(v.target)} ${v.target.type})`);
-                    else console.log(`  - ${v.name} (L${utils.getLevel(v)} ${v.type})`);
+                    if (utils.isRelationship(v)) console.log(`  - ${v.source.name} (L${utils.getLevel(v.source)} ${utils.formatType(v.source.type)}) --> ${v.target.name} (L${utils.getLevel(v.target)} ${utils.formatType(v.target.type)})`);
+                    else console.log(`  - ${v.name} (L${utils.getLevel(v)} ${utils.formatType(v.type)})`);
                     count++;
                 }
             });
+            if (f.violationCount > config.VIOLATION_EXAMPLES) console.log(`  - ... and ${f.violationCount - config.VIOLATION_EXAMPLES} more`);
             console.log();
         }
     }
