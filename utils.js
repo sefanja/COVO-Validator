@@ -82,10 +82,15 @@ var utils = (function() {
         childrenCache[parent.id].add(child);
     });
     // Cutoff childrenCache below the selected level
-    const selectedLevel = Math.max(...getLevels(getUniqueConcepts(selection.find('element'))));
+    const selectedLevel = getLowestLevel(getUniqueConcepts(selection.find('element')));
     for (const [parentId, children] of Object.entries(childrenCache))
         if (getLevel(children.first()) > selectedLevel)
             childrenCache[parentId] = _EMPTY.clone();
+
+    // TODO: doc
+    function getParents(element) {
+        return parentsCache[element.id] || _EMPTY;
+    }
 
     /**
      * Traverses the 'refinement' hierarchy upwards to find the immediate parent.
@@ -94,7 +99,7 @@ var utils = (function() {
      * @returns {ArchiMateElement|undefined}
      */
     function getParent(element) {
-        return (parentsCache[element.id] || _EMPTY).first();
+        return getParents(element).first();
     }
 
     /**
@@ -103,7 +108,7 @@ var utils = (function() {
      * @returns {boolean}
      */
     function hasMultipleParents(element) {
-        return (parentsCache[element.id] || _EMPTY).size() > 1;
+        return getParents(element).size() > 1;
     }
 
     /**
@@ -201,6 +206,11 @@ var utils = (function() {
      */
     function getLevels(concepts) {
         return new Set(wrap(concepts).map(getLevel));
+    }
+
+    // TODO: doc
+    function getLowestLevel(concepts) {
+        return Math.max(...getLevels(concepts));
     }
 
     /**
@@ -470,13 +480,13 @@ var utils = (function() {
             const allVisualElements = $(view).find('element');
             if (allVisualElements.size() === 0) return;
 
-            const viewLevel = Math.max(...getLevels(getUniqueConcepts(allVisualElements)));
+            const viewLevel = getLowestLevel(getUniqueConcepts(allVisualElements));
             const visualStages = allVisualElements.find(config.ELEMENT_TYPES.stream)
                 .filter(s => getLevel(s.concept) === viewLevel)
                 .map(s => {
                     const [left, right] = getHorizontalSpan(s);
-                    return { 
-                        name: s.name,
+                    return {
+                        concept: s.concept,
                         left: left, 
                         right: right, 
                         elements: _EMPTY.clone()
@@ -498,8 +508,8 @@ var utils = (function() {
                 const stageRels = s.elements.rels().filter(r => ids.includes(r.source.id) && ids.includes(r.target.id));
                 const stageCovoModel = buildCovoModel(s.elements.add(stageRels));
                 valueStageZones.push({
-                    name: s.name, 
-                    viewName: view.name, 
+                    topStreamId: getRoot(s.concept).id,
+                    view: view,
                     covoModel: stageCovoModel
                 });
             }
@@ -512,11 +522,21 @@ var utils = (function() {
 
     /**
      * Formats a raw Archi type (e.g. 'business-process' to 'Business Process').
-     * @param {string} t 
+     * @param {string} type 
      * @returns {string} A formatted type string.
      */
-    function formatType(t) {
-        return t.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    function formatType(type) {
+        return type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    //TODO: doc
+    function formatElement(element, long) {
+        return `'${element.name}'${long ? ` (L${getLevel(element)} ${formatType(element.type)})` : ''}`;
+    }
+
+    //TODO: doc
+    function formatRelationship(relationship, long) {
+        return `${formatElement(relationship.source, long)} --> ${formatElement(relationship.target, long)}`;
     }
 
     /**
@@ -526,13 +546,22 @@ var utils = (function() {
      * Example output (element): 'Billing' (L2 Capability)
      * Example output (relationship): 'Create Invoice' (L3 Value Stream) --> 'Invoice' (L3 Business Object)
      * 
-     * @param {object} c - The jArchi concept object (element or relationship).
+     * @param {object} concept - The jArchi concept object (element or relationship).
+     * TODO: doc extra param
      * @returns {string} A human-readable string representation of the concept.
      */
-    function formatConcept(c) {
-        return isRelationship(c)
-        ? `'${c.source.name}' (L${getLevel(c.source)} ${formatType(c.source.type)}) --> '${c.target.name}' (L${getLevel(c.target)} ${formatType(c.target.type)})`
-        : `'${c.name}' (L${getLevel(c)} ${formatType(c.type)})`;
+    function formatConcept(concept, long = false) {
+        return isRelationship(concept) ? formatRelationship(concept, long) : formatElement(concept, long);
+    }
+
+    function getViewPath(view) {
+        var path = [];
+        var parent = $(view).parents().first();
+        while(parent && parent.name) {
+            path.unshift(parent.name);
+            parent = $(parent).parents().first();
+        }
+        return path.join(' / ');
     }
 
     return {
@@ -545,6 +574,7 @@ var utils = (function() {
         isOverlapping: isOverlapping,
 
         // Vertical structure
+        getParents: getParents,
         getParent: getParent,
         hasMultipleParents: hasMultipleParents,
         getChildren: getChildren,
@@ -553,6 +583,7 @@ var utils = (function() {
         getRoots: getRoots,
         getLevel: getLevel,
         getLevels: getLevels,
+        getLowestLevel: getLowestLevel,
         getSharedLevels: getSharedLevels,
         getDominantDepth: getDominantDepth,
 
@@ -571,7 +602,8 @@ var utils = (function() {
         getValueStageZones: getValueStageZones,
 
         // UI
-        formatConcept: formatConcept
+        formatConcept: formatConcept,
+        getViewPath: getViewPath
     };
 
 })();
