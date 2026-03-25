@@ -82,19 +82,23 @@ var utils = (function() {
         childrenCache[parent.id].add(child);
     });
     // Cutoff childrenCache below the selected level
-    const selectedLevel = getLowestLevel(getUniqueConcepts(selection.find('element')));
+    const selectedLevel = getMaxLevel(getUniqueConcepts(selection.find('element')));
     for (const [parentId, children] of Object.entries(childrenCache))
         if (getLevel(children.first()) > selectedLevel)
             childrenCache[parentId] = _EMPTY.clone();
 
-    // TODO: doc
+    /**
+     * Traverses the 'refinement' hierarchy upwards to find the immediate parents.
+     * Logic is based on the relationship type defined in config.js (default: composition).
+     * @param {ArchiMateElement} element
+     * @returns {collection}
+     */
     function getParents(element) {
         return parentsCache[element.id] || _EMPTY;
     }
 
     /**
-     * Traverses the 'refinement' hierarchy upwards to find the immediate parent.
-     * Logic is based on the relationship type defined in config.js (default: composition).
+     * Selects the first parent.
      * @param {ArchiMateElement} element
      * @returns {ArchiMateElement|undefined}
      */
@@ -208,8 +212,12 @@ var utils = (function() {
         return new Set(wrap(concepts).map(getLevel));
     }
 
-    // TODO: doc
-    function getLowestLevel(concepts) {
+    /**
+     * Returns the maximum level in a collection of concepts.
+     * @param {jArchiCollection|ArchiMateConcept} concepts
+     * @returns 
+     */
+    function getMaxLevel(concepts) {
         return Math.max(...getLevels(concepts));
     }
 
@@ -437,8 +445,8 @@ var utils = (function() {
      */
     function identifyDomainHeader(covoModel) {
         const levels = getLevels(covoModel.objects);
-        const highestLevel = Math.min(...getLevels(covoModel.objects));
-        const highestObjects = covoModel.objects.filter(e => getLevel(e) === highestLevel);
+        const minLevel = Math.min(...getLevels(covoModel.objects));
+        const highestObjects = covoModel.objects.filter(e => getLevel(e) === minLevel);
         if (covoModel.isBasedOn.size() > 0 && levels.size === 2 && highestObjects.size() === 1) return highestObjects.first();
     }
 
@@ -480,7 +488,7 @@ var utils = (function() {
             const allVisualElements = $(view).find('element');
             if (allVisualElements.size() === 0) return;
 
-            const viewLevel = getLowestLevel(getUniqueConcepts(allVisualElements));
+            const viewLevel = getMaxLevel(getUniqueConcepts(allVisualElements));
             const visualStages = allVisualElements.find(config.ELEMENT_TYPES.stream)
                 .filter(s => getLevel(s.concept) === viewLevel)
                 .map(s => {
@@ -529,31 +537,48 @@ var utils = (function() {
         return type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
 
-    //TODO: doc
-    function formatElement(element, long) {
-        return `'${element.name}'${long ? ` (L${getLevel(element)} ${formatType(element.type)})` : ''}`;
+    /**
+     * Formats an ArchiMate element into a standardized string for reporting,
+     * including name, hierarchy level, and formatted type.
+     * 
+     * Example output: 'Billing' (L2 Capability)
+     * 
+     * @param {ArchiMateElement} element - The jArchi element.
+     * @returns {string} A human-readable string representation of the element.
+     */
+    function formatElement(element) {
+        return `'${element.name}' (L${getLevel(element)} ${formatType(element.type)})`;
     }
 
-    //TODO: doc
-    function formatRelationship(relationship, long) {
-        return `${formatElement(relationship.source, long)} --> ${formatElement(relationship.target, long)}`;
+    /**
+     * Formats an ArchiMate relationship into a standardized string for reporting.
+     *
+     * Example output: 'Create Invoice' (L3 Value Stream) --> 'Invoice' (L3 Business Object)
+     * 
+     * @param {ArchiMateRelationship} relationship - The jArchi relationship.
+     * @returns {string} A human-readable string representation of the relationship.
+     */
+    function formatRelationship(relationship) {
+        return `${formatElement(relationship.source)} --> ${formatElement(relationship.target)}`;
     }
 
     /**
      * Formats an ArchiMate concept (element or relationship) into a standardized string 
-     * for reporting, including names, hierarchy levels, and formatted types.
-     * 
-     * Example output (element): 'Billing' (L2 Capability)
-     * Example output (relationship): 'Create Invoice' (L3 Value Stream) --> 'Invoice' (L3 Business Object)
-     * 
      * @param {object} concept - The jArchi concept object (element or relationship).
-     * TODO: doc extra param
      * @returns {string} A human-readable string representation of the concept.
      */
-    function formatConcept(concept, long = false) {
-        return isRelationship(concept) ? formatRelationship(concept, long) : formatElement(concept, long);
+    function formatConcept(concept) {
+        return isRelationship(concept) ? formatRelationship(concept) : formatElement(concept);
     }
 
+    /**
+     * Returns the full path of the given view.
+     * 
+     * Example output: Views / Level 2
+     * 
+     * @param {ArchiMateView} view 
+     * @returns {string} A human-readable string of the view's path.
+     */
     function getViewPath(view) {
         var path = [];
         var parent = $(view).parents().first();
@@ -574,7 +599,6 @@ var utils = (function() {
         isOverlapping: isOverlapping,
 
         // Vertical structure
-        getParents: getParents,
         getParent: getParent,
         hasMultipleParents: hasMultipleParents,
         getChildren: getChildren,
@@ -583,7 +607,7 @@ var utils = (function() {
         getRoots: getRoots,
         getLevel: getLevel,
         getLevels: getLevels,
-        getLowestLevel: getLowestLevel,
+        getMaxLevel: getMaxLevel,
         getSharedLevels: getSharedLevels,
         getDominantDepth: getDominantDepth,
 

@@ -2,44 +2,30 @@ var constraints = (function() {
 
     return [
         {
-            id: 'C1',
-            name: 'Unique parent',
+            id: 'C01',
             validate: function(covoModel) {
-                const violations = covoModel.elements.filter(utils.hasMultipleParents);
-                return { violations: violations, context: null };
+                return covoModel.elements.filter(utils.hasMultipleParents);
             },
-            describe: function(e, context) {
-                return `${utils.formatConcept(e, true)} has multiple parents: ${utils.getParents(e).map(p => utils.formatConcept(p)).join(', ')}.`;
-            },
+            describe: 'Multiple parents'
         },
         {
-            id: 'C2',
-            name: 'Acyclicity',
+            id: 'C02',
             validate: function(covoModel) {
-                const violations = covoModel.isRefinedBy.filter(r => utils.canReach(r.target, r.source, covoModel.isRefinedBy));
-                return { violations: violations, context: null };
+                return covoModel.isRefinedBy.filter(r => utils.canReach(r.target, r.source, covoModel.isRefinedBy));
             },
-            describe: function(r, context) {
-                return `${utils.formatConcept(r, true)} is part of a parent-child cycle.`;
-            }
+            describe: 'Part of a cycle'
         },
         {
-            id: 'C3',
-            name: 'Consistent refinement depth',
+            id: 'C03',
             validate: function(covoModel) {
                 const leafs = covoModel.elements.filter(utils.isLeaf);
                 const dominantDepth = utils.getDominantDepth(leafs);
-                const violations = leafs.filter(e => utils.getLevel(e) !== dominantDepth);
-                const context = { dominantDepth: dominantDepth };
-                return { violations: violations, context: context };
+                return leafs.filter(e => utils.getLevel(e) !== dominantDepth);
             },
-            describe: function(e, context) {
-                return `${utils.formatConcept(e, true)} is a leaf element (no chlidren) but is not at the leaf level (L${context.dominantDepth}).`;
-            }
+            describe: 'Leafs at a deviant refinement level'
         },
         {
-            id: 'C4',
-            name: 'Upward coherence',
+            id: 'C04',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.horizontalRelationships.filter(r =>
@@ -59,7 +45,7 @@ var constraints = (function() {
                 }
 
                 // IDENTIFY VIOLATIONS
-                const violations = scope.filter(r => {
+                return scope.filter(r => {
                     const pSrc = utils.getParent(r.source);
                     const pTgt = utils.getParent(r.target);
 
@@ -92,19 +78,11 @@ var constraints = (function() {
                         && (r.type !== config.REL_TYPES.coManifestsFor || r.type === pR.type)
                     ).size() === 0;
                 });
-
-                return { violations: violations, context: null };
             },
-            describe: function(r, context) {
-                const pSrc = utils.getParent(r.source);
-                const pTgt = utils.getParent(r.target);
-                const hasParents = !!(pSrc && pTgt)
-                return `${utils.formatConcept(r, true)} has no corresponding relationship between the parent elements${hasParents ? `: ${utils.formatConcept(pSrc)} --> ${utils.formatConcept(pTgt)}` : ''}.`;
-            },
+            describe: 'Missing corresponding relationship between parents'
         },
         {
-            id: 'C5',
-            name: 'Downward coherence',
+            id: 'C05',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.horizontalRelationships.clone();
@@ -112,7 +90,7 @@ var constraints = (function() {
                 if (!strict) scope = utils.filterByLevelOffset(scope, 1);
 
                 // IDENTIFY VIOLATIONS
-                const violations = scope.filter(r => {
+                return scope.filter(r => {
                     // Both leafs or one leaf
                     if (utils.isLeaf(r.source) && utils.isLeaf(r.target)) return false;
                     if (utils.isLeaf(r.source) || utils.isLeaf(r.target)) return true;
@@ -124,16 +102,11 @@ var constraints = (function() {
                         && utils.isOverlapping(cR.target, utils.getChildren(r.target))
                     ).size() === 0;
                 });
-
-                return { violations: violations, context: null };
             },
-            describe: function(r, context) {
-                return `${utils.formatConcept(r, true)} does not have a corresponding relationship between their children.`;
-            }
+            describe: 'Missing corresponding relationship between children'
         },
         {
-            id: 'C6',
-            name: 'Capability impact',
+            id: 'C06',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.capabilities.clone();
@@ -141,20 +114,15 @@ var constraints = (function() {
                 if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.transforms));
 
                 // IDENTIFY VIOLATIONS
-                const violations = scope.filter(e => {
+                return scope.filter(e => {
                     const objectCount = utils.getTargets(e, covoModel.transforms).size();
                     return utils.isLeaf(e) ? (objectCount < 1) : (objectCount !== 1);
                 });
-
-                return { violations: violations, context: null };
             },
-            describe: function(e, context) {
-                return `${utils.formatConcept(e, true)} is not linked to an object.`;
-            }
+            describe: 'Not linked to an object'
         },
         {
-            id: 'C7',
-            name: 'Object relevance',
+            id: 'C07',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.objects.clone();
@@ -162,20 +130,15 @@ var constraints = (function() {
                 if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.transforms));
 
                 // IDENTIFY VIOLATIONS
-                const violations = scope.filter(e => {
+                return scope.filter(e => {
                     const capabilityCount = utils.getSources(e, covoModel.transforms).size();
                     return utils.isLeaf(e) ? (capabilityCount < 1) : (capabilityCount !== 1);
                 });
-
-                return { violations: violations, context: null };
             },
-            describe: function(e, context) {
-                return `${utils.formatConcept(e, true)} is not linked to a capability.`;
-            },
+            describe: 'Not linked to a capability'
         },
         {
-            id: 'C8',
-            name: 'Capability purpose',
+            id: 'C08',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.capabilities.clone();
@@ -185,17 +148,12 @@ var constraints = (function() {
                 }
 
                 // IDENTIFY VIOLATIONS
-                const violations = scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enables.clone().add(covoModel.isManifestedBy)));
-
-                return { violations: violations, context: null };
+                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enables.clone().add(covoModel.isManifestedBy)));
             },
-            describe: function(e, context) {
-                return `${utils.formatConcept(e, true)} is not related to a value stream, either directly or indirectly through other capabilities.`;
-            }
+            describe: 'Not related to a value stream'
         },
         {
-            id: 'C9',
-            name: 'Traceability',
+            id: 'C09',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.streams.clone();
@@ -203,20 +161,12 @@ var constraints = (function() {
                 if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.isManifestedBy));
 
                 // IDENTIFY VIOLATIONS
-                const violations = scope.filter(e => utils.getSources(e, covoModel.isManifestedBy).size() !== 1);
-
-                return { violations: violations, context: covoModel };
+                return scope.filter(e => utils.getSources(e, covoModel.isManifestedBy).size() !== 1);
             },
-            describe: function(e, context) {
-                const capabilities = utils.getSources(e, context.isManifestedBy);
-                if (capabilities.size() === 0) return `${utils.formatConcept(e)} is not linked to a capability.`;
-                // TODO: test:
-                else return `${utils.formatConcept(e, true)} is linked to multiple capabilities: ${capabilities.map(c => utils.formatConcept(c)).join(', ')}.`
-            },
+            describe: 'Linked to multiple capabilities'
         },
         {
             id: 'C10',
-            name: 'Exclusive manifestation',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.capabilities.clone();
@@ -224,21 +174,15 @@ var constraints = (function() {
                 if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.isManifestedBy));
 
                 // IDENTIFY VIOLATIONS
-                const violations = scope.filter(e => {
+                return scope.filter(e => {
                     const streams = utils.getTargets(e, covoModel.isManifestedBy);
                     return !utils.isLeaf(e) && streams.size() > utils.getRoots(streams).size();
                 });
-
-                return { violations: violations, context: covoModel };
             },
-            describe: function(e, context) {
-                const streams = utils.getTargets(e, context.isManifestedBy)
-                return `${utils.formatConcept(e, true)} is linked to multiple stages: ${streams.map(s => utils.formatConcept(s)).join(', ')}.`;
-            }
+            describe: 'Linked to multiple stages'
         },
         {
             id: 'C11',
-            name: 'Grounded value stream dependencies',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.affects.clone();
@@ -248,23 +192,16 @@ var constraints = (function() {
                 }
 
                 // IDENTIFY VIOLATIONS
-                const violations = scope.filter(r => {
+                return scope.filter(r => {
                     const sObj = utils.getTargets(utils.getSources(r.source, covoModel.isManifestedBy), covoModel.transforms);
                     const tObj = utils.getTargets(utils.getSources(r.target, covoModel.isManifestedBy), covoModel.transforms);
                     return !utils.isOverlapping(sObj, tObj) && !utils.hasRelationship(tObj, sObj, covoModel.isBasedOn);
                 });
-
-                return { violations: violations, context: covoModel };
             },
-            describe: function(r, context) {
-                const sObj = utils.getTargets(utils.getSources(r.source, context.isManifestedBy), context.transforms);
-                const tObj = utils.getTargets(utils.getSources(r.target, context.isManifestedBy), context.transforms);
-                return `${utils.formatConcept(r, true)} is not mirrored by an object relationship from ${tObj.map(o => utils.formatConcept(o)).join(' or ')} to ${sObj.map(o => utils.formatConcept(o)).join(' or ')}.`;
-            }
+            describe: 'Missing corresponding object relationship'
         },
         {
             id: 'C12',
-            name: 'Grounded capability dependencies',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.enables.clone();
@@ -274,23 +211,16 @@ var constraints = (function() {
                 }
 
                 // IDENTIFY VIOLATIONS
-                const violations = scope.filter(r => {
+                return scope.filter(r => {
                     const sObj = utils.getTargets(r.source, covoModel.transforms);
                     const tObj = utils.getTargets(r.target, covoModel.transforms);
                     return !utils.isOverlapping(sObj, tObj) && !utils.hasRelationship(tObj, sObj, covoModel.isBasedOn);
                 });
-
-                return { violations: violations, context: covoModel };
             },
-            describe: function(r, context) {
-                const sObj = utils.getTargets(r.source, context.transforms);
-                const tObj = utils.getTargets(r.target, context.transforms);
-                return `${utils.formatConcept(r, true)} is not mirrored by an object relationship from ${tObj.map(o => utils.formatConcept(o)).join(' or ')} to ${sObj.map(o => utils.formatConcept(o)).join(' or ')}.`;
-            },
+            describe: 'Missing corresponding object relationship'
         },
         {
             id: 'C13',
-            name: 'Justified object dependencies',
             validate: function(covoModel, strict = true) {
                 // DETERMINE SCOPE
                 let scope = covoModel.isBasedOn.clone();
@@ -316,15 +246,12 @@ var constraints = (function() {
                     return true;
                 });
 
-                return { violations: violations, context: null };
+                return violations;
             },
-            describe: function(r, context) {
-                return `${utils.formatConcept(r, true)} is not mirrored by a relationship between corresponding capabilities or stages.`;
-            }
+            describe: 'Missing corresponding relationship between stages or capabilities'
         },
         {
             id: 'V1',
-            name: 'Completeness',
             validate: function(covoModel, referenceCovoModel) {
                 const violations = $();
                 const lowestLevel = Math.max(...utils.getLevels(covoModel.elements));
@@ -344,22 +271,16 @@ var constraints = (function() {
                     })
                 });
 
-                return { violations: violations, context: null };
+                return violations;
             },
-            describe: function(c, context) {
-                return `${utils.formatConcept(c, true)} is missing from the view.`;
-            },
+            describe: 'Missing on view'
         },
         {
             id: 'V2',
-            name: 'Justification',
             validate: function(covoModel, referenceCovoModel) {
-                const violations = covoModel.elements.clone().add(covoModel.horizontalRelationships).not(referenceCovoModel.concepts);
-                return { violations: violations, context: null };
+                return covoModel.elements.clone().add(covoModel.horizontalRelationships).not(referenceCovoModel.concepts);
             },
-            describe: function(c, context) {
-                return `${utils.formatConcept(c, true)} is not present in any value stream view.`;
-            },
+            describe: 'Missing on a value stream view'
         }
     ];
 
