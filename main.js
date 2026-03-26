@@ -35,16 +35,21 @@
      */
     function rememberFailures(view, constraint, violations) {
         if (violations.size() === 0) return;
+
         summary.totalViolations += violations.size();
         summary.failed.add(constraint.id);
 
-        if (!viewReports.has(view.id))
-            viewReports.set(view.id, { view: view, path: utils.getViewPath(view), failures: [] });
-        
-        const report = viewReports.get(view.id);
-        const existingFailure = report.failures.find(f => f.constraint.id === constraint.id);
-        if (existingFailure) existingFailure.violations.add(violations);
-        else report.failures.push({ constraint: constraint, violations: violations });
+        if (!view) {
+            globalFailures.push({ constraint: constraint, violations: violations });
+        } else {
+            if (!viewReports.has(view.id))
+                viewReports.set(view.id, { view: view, path: utils.getViewPath(view), failures: [] });
+
+            const report = viewReports.get(view.id);
+            const existingFailure = report.failures.find(f => f.constraint.id === constraint.id);
+            if (existingFailure) existingFailure.violations.add(violations);
+            else report.failures.push({ constraint: constraint, violations: violations });
+        }
     }
 
     // --- CLASSIFY VIEWS ---
@@ -80,19 +85,13 @@
     const valueStreamsCovoModel = utils.buildCovoModel(valueStreamViews.find().add(topLevelViews.find()));
 
     // Global validation
-    for (const constraint of constraints.filter(r => ['C1', 'C2', 'C3'].includes(r.id))) {
-        const violations = constraint.validate(globalCovoModel);
-        if (violations.size() > 0) {
-            globalFailures.push({ constraint: constraint, violations: violations });
-            summary.totalViolations += violations.size();
-            summary.failed.add(constraint.id);
-        }
-    }
+    for (const constraint of constraints.filter(r => ['C01', 'C02', 'C03'].includes(r.id)))
+        rememberFailures(null, constraint, constraint.validate(globalCovoModel));
 
     // Validate top-level views
     for (const view of topLevelViews) {
         const covoModel = utils.buildCovoModel($(view).find());
-        for (const constraint of constraints.filter(r => ['C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13'].includes(r.id)))
+        for (const constraint of constraints.filter(r => ['C06', 'C07', 'C08', 'C09', 'C10', 'C11', 'C12', 'C13'].includes(r.id)))
             rememberFailures(view, constraint, constraint.validate(covoModel, true));
     }
 
@@ -101,8 +100,8 @@
         const covoModel = utils.buildCovoModel(collectionViews.find());
         const covoModelExtended = utils.buildCovoModel((topLevelViews.clone().add(collectionViews)).find());
         
-        for (const constraint of constraints.filter(r => ['C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13'].includes(r.id))) {
-            const violations = constraint.validate(['C4', 'C9'].includes(constraint.id) ? covoModelExtended : covoModel, strict);
+        for (const constraint of constraints.filter(r => ['C04', 'C05', 'C06', 'C07', 'C08', 'C09', 'C10', 'C11', 'C12', 'C13'].includes(r.id))) {
+            const violations = constraint.validate(['C04', 'C09'].includes(constraint.id) ? covoModelExtended : covoModel, strict);
             
             if (violations.size() > 0) {
                 const viewLevelMap = new Map();
@@ -140,7 +139,7 @@
             rememberFailures(domainView, constraint, constraint.validate(covoModel, referenceContext));
     }
 
-    // Landscape Views
+    // Validate landscape Views
     for (const landscapeView of landscapeViews) {
         const covoModel = utils.buildCovoModel($(landscapeView).find());
         for (const constraint of constraints.filter(r => ['V1', 'V2'].includes(r.id)))
