@@ -22,7 +22,7 @@ var config = (function() {
     // enables: from provider to consumer (e.g., flow)
     // coManifestsFor: from provider to consumer (e.g., triggering)
     // isBasedOn: from depender to dependee (e.g., directed association)
-    // isManifestedBy: from capability to value stream (e.g., serving)
+    // principal: from capability to value stream (e.g., serving)
     // transforms: from capability to object (e.g., access or directed association)
 
     const VIOLATION_EXAMPLES = 5;
