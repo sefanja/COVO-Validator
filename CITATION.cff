@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the foundational paper below."
+authors:
+  - family-names: "Severin"
+    given-names: "Sefanja"
+    orcid: "https://orcid.org/0009-0003-0040-1058"
+title: "COVO Validator"
+preferred-citation:
+  type: conference-paper
+  authors:
+    - family-names: "Severin"
+      given-names: "Sefanja"
+      orcid: "https://orcid.org/0009-0003-0040-1058"
+    - family-names: "Roelens"
+      given-names: "Ben"
+      orcid: "https://orcid.org/0000-0002-2443-8678"
+    - family-names: "Roubtsova"
+      given-names: "Ella"
+      orcid: "https://orcid.org/0000-0002-4067-3088"
+    - family-names: "Sales"
+      given-names: "Tiago Prince"
+      orcid: "https://orcid.org/0000-0002-5385-5761"
+    - family-names: "van der Knaap"
+      given-names: "Ton"
+      orcid: "https://orcid.org/0009-0002-9012-0550"
+    - family-names: "Joosten"
+      given-names: "Stef"
+      orcid: "https://orcid.org/0000-0001-8308-0189"
+  title: "Semantically Coherent Business Architecture Models: Integrating Capabilities, Value Streams, and Business Objects"
+  year: 2025
+  conference:
+    name: "18th IFIP WG 8.1 Working Conference on the Practice of Enterprise Modeling (PoEM 2025)"
+  url: "https://ceur-ws.org/Vol-4171/paper_41.pdf"

@@ -2,7 +2,7 @@
 
 ## Automating Semantic Symmetry in Business Architecture Modeling
 
-The COVO Validator is a jArchi script designed to validate ArchiMate models against the Capability-Object-Value Ontology (COVO). It establishes a semantic symmetry between organizational behavior (value streams and capabilities) and structure (objects) by enforcing formal modeling constraints.
+The COVO Validator is a jArchi script designed to validate ArchiMate models against the [Capability-Object-Value Ontology (COVO)](https://ceur-ws.org/Vol-4171/paper_41.pdf). Building upon the original ontology, this tool implements a refined set of formal constraints (C1–C13) to establish semantic symmetry between organizational behavior (value streams and capabilities) and structure (objects).
 
 ## Key Features
 
@@ -30,26 +30,13 @@ The COVO Validator is a jArchi script designed to validate ArchiMate models agai
 
 ## Installation
 
-Download this repository as a ZIP file.
-
-Extract the contents into a folder on your system, for example:
-
-```Text
-C:\Users\UserName\Downloads\COVO-Validator\
-```
-
-To use this script inside Archi:
-
-1. Open Archi
+1. Open **Archi**
 2. Go to `Scripts → Scripts Manager`, and click **New Archi Script**
-3. Name the new script `COVO Validator.ajs`
-4. In the script editor, paste the following line (adjust the path if needed):
-
-   ```javascript
-   load('C:/Users/UserName/Downloads/COVO-Validator/main.js');
-   ```
-
-5. Save the script
+3. Name the new script `COVO Validator`
+4. Click `Edit` if the script editor does not automatically open
+5. [**Click here to open the script code**](https://raw.githubusercontent.com/sefanja/COVO-Validator/refs/heads/main/dist/COVO%20Validator.ajs)
+6. Select all the text (`Ctrl+A`), copy it (`Ctrl+C`), and **paste** it into the script editor
+7. **Save** the script (click the disk icon or press `Ctrl+S`)
 
 ## Usage
 
@@ -70,12 +57,12 @@ OVERALL STATUS: FAILED
 SELECTION:
  - CONSTRUCTION mode
  - 70 views
- - 621 elements (value-stream, capability, business-object)
+ - 621 elements (Value Stream, Capability, Business Object)
  - 1340 horizontal relationships
- - 601 vertical relationships (composition-relationship)
+ - 601 vertical relationships (Composition Relationship)
 
 VIOLATION SUMMARY:
- - Constraints failed: C5
+ - Constraints failed: C05
  - Total violations: 1
 
 
@@ -90,21 +77,28 @@ VIOLATION SUMMARY:
 Validation completed in 797 ms
 ```
 
-## The COVO Logic (Briefly)
+## Modeling Guidelines
 
-The tool enforces 15 constraints (C1-13, V1-2) based on the principle of semantic symmetry:
+To ensure the COVO Validator correctly interprets your model, please follow these conventions:
 
-* **Behavior implies structure**: If stage A triggers stage B or capability A enables capability B, then their objects have a status dependency.
-* **Structure validates behavior**: If the structural dependency is missing, the behavioral logic is considered invalid.
+* **Vertical hierarchy**: For refinement between levels (e.g., L0 to L1), use only **Composition** or **Aggregation**. The validator treats these as structural refinement; avoid using them for horizontal dependencies.
+* **Co-manifestation**: To express that one Capability is required concurrently by another (the *co-manifests for* relationship), use the **Serving** relationship. For standard *enablement* (where one Capability creates a precondition for another, outside the scope of the current value stream stage), use any other relationship type (e.g., **Flow**).
+* **Horizontal dependencies**: All other relationship types (Triggering, Association, Realization, etc.) are automatically recognized and validated according to the COVO logic.
 
-This ensures that your object model is not just a drawing, but an artifact grounded in value creation logic.
+### Capability-to-Object Access (Optional)
 
-## Configuration
+By default, ArchiMate does not allow the *Access* relationship between a Capability and a Business Object. You have three options to model this semantic link:
 
-The tool works out-of-the-box, but you can tweak settings in config.js:
+1. **Business**: Substitute the strategy elements with **Business Process**, **Business Function**, and **Business Object**.
+2. **Standard**: Use a **Directed Association** and visually nest the Object inside the Capability.
+3. **Custom**: Enable the *Access* relationship in Archi by modifying the underlying model definitions. This allows for the most expressive COVO modeling experience:
+   a. Close Archi.
+   b. Locate `relationships.xml` in your Archi installation folder, typically under: `plugins/com.archimatetool.model_x.x.x/model/relationships.xml`.
+   c. Find the section `<source concept="Capability">`.
+   d. Find the line `<target concept="BusinessObject" relations="o"/>` and change `relations="o"` to `relations="ao"`.
+   e. Restart Archi.
 
-* **Dialect**: Force specific ArchiMate types if auto-detection fails.
-* **Violation limit**: Adjust the number of examples shown per failure in the console.
+**Note:** This technical modification deviates from the official ArchiMate 3.2 specification. While it provides the best modeling experience within Archi, the resulting models may show errors when opened in standard Archi installations or when exported via the ArchiMate Exchange Format to other tools.
 
 ## Project Structure
 
@@ -116,8 +110,7 @@ The tool works out-of-the-box, but you can tweak settings in config.js:
 
 ## Citation
 
-If you use this tool in academic work, please cite the accompanying paper:
-[Citation Placeholder: "Semantic Symmetry in Business Architecture: Grounding Value Creation in Object Models", EDOC 2025]
+If you use this tool or the COVO method in your research, please cite the foundational paper. You can use the **"Cite this repository"** button in the GitHub sidebar to export the citation in BibTeX or APA format.
 
 ## License
 

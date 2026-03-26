@@ -626,6 +626,7 @@ var utils = (function() {
         getValueStageZones: getValueStageZones,
 
         // UI
+        formatType: formatType,
         formatConcept: formatConcept,
         getViewPath: getViewPath
     };
