@@ -40,10 +40,13 @@ The COVO Validator is a jArchi script designed to validate ArchiMate models agai
 
 ## Usage
 
-1. **Select scope**: In the Model Tree, select the views, folders, or the entire model you wish to validate.
-2. **Run**: Right-click the selection -> `Scripts` -> `COVO Validator`.
-3. **Choose profile**: Select *Construction* or *Audit* from the dialog.
-4. **Analyze**: Open the Script Console in Archi to view the report.
+**New to COVO?** We recommend starting with the `example.archimate` model included in this repository. It contains a valid reference structure to test the validator.
+
+1. **Open Model**: Load your ArchiMate model (or [example.archimate](https://github.com/sefanja/COVO-Validator/blob/main/example.archimate)) in Archi.
+2. **Select Scope**: In the Model Tree, select the views, folders, or the entire model you wish to validate.
+3. **Run**: Right-click the selection -> `Scripts` -> `COVO Validator`.
+4. **Choose Profile**: Select *Construction* or *Audit* from the dialog.
+5. **Analyze**: Open the Script Console in Archi to view the report.
 
 ### The Console Report
 
@@ -67,7 +70,7 @@ VIOLATION SUMMARY:
 
 
 ======================================================================
- VIEW: N1 CONNECT USERS TO THE GRID (1 violations)
+ VIEW: L1 CONNECT USERS TO THE GRID (1 violations)
  Path: Views / Level 1
 ======================================================================
  [!!] C05 - Missing corresponding relationship between children:
@@ -82,15 +85,25 @@ Validation completed in 797 ms
 To ensure the COVO Validator correctly interprets your model, please follow these conventions:
 
 * **Vertical hierarchy**: For refinement between levels (e.g., L0 to L1), use only **Composition** or **Aggregation**. The validator treats these as structural refinement; avoid using them for horizontal dependencies.
-* **Co-manifestation**: To express that one Capability is required concurrently by another (the *co-manifests for* relationship), use the **Serving** relationship. For standard *enablement* (where one Capability creates a precondition for another, outside the scope of the current value stream stage), use any other relationship type (e.g., **Flow**).
+* **Co-manifestation**: To express that one capability is required concurrently by another (the *co-manifests for* relationship), use the **Serving** relationship. For standard *enablement* (where one capability creates a precondition for another, outside the scope of the current value stream stage), use any other relationship type (e.g., **Flow**).
 * **Horizontal dependencies**: All other relationship types (Triggering, Association, Realization, etc.) are automatically recognized and validated according to the COVO logic.
+
+## Reference & Examples
+
+To see the COVO method applied in a large-scale, real-world environment within the Dutch energy sector, explore the [**NBility Model**](https://nbility.netbeheernederland.nl/model/).
+
+The upcoming version (2.4) extensively uses COVO principles in its 'core' domain. For a concrete example of a COVO-compliant structure, see:
+
+* [**N2 Waardestroom C.A**](https://nbility.netbeheernederland.nl/review-2.4/?view=id-caad12a9fb99480c8037d509a0dbe0c2)
+
+This repository also includes a local `example.archimate` file, which serves as a sandbox for testing the validator's constraints.
 
 ### Capability-to-Object Access (Optional)
 
 By default, ArchiMate does not allow the *Access* relationship between a Capability and a Business Object. You have three options to model this semantic link:
 
 1. **Business**: Substitute the strategy elements with **Business Process**, **Business Function**, and **Business Object**.
-2. **Standard**: Use a **Directed Association** and visually nest the Object inside the Capability.
+2. **Standard**: Use a **Directed Association** and visually nest the object inside the capability.
 3. **Custom**: Enable the *Access* relationship in Archi by modifying the underlying model definitions. This allows for the most expressive COVO modeling experience:
    a. Close Archi.
    b. Locate `relationships.xml` in your Archi installation folder, typically under: `plugins/com.archimatetool.model_x.x.x/model/relationships.xml`.
