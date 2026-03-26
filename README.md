@@ -1,8 +1,8 @@
 # COVO Validator for Archi
 
-## Automating Semantic Coherence in Business Architecture Modeling
+## Automating Semantic Symmetry in Business Architecture Modeling
 
-The COVO Validator is a jArchi script designed to validate ArchiMate models against the Capability-Object-Value Ontology (COVO) method. It bridges the gap between organizational behavior (value streams and business capabilities) and structural assets (business objects) by enforcing formal semantic constraints.
+The COVO Validator is a jArchi script designed to validate ArchiMate models against the Capability-Object-Value Ontology (COVO). It establishes a semantic symmetry between organizational behavior (value streams and capabilities) and structure (objects) by enforcing formal modeling constraints.
 
 ## Key Features
 
@@ -23,8 +23,6 @@ The COVO Validator is a jArchi script designed to validate ArchiMate models agai
 3. **Dialect-agnostic (zero-config)**. Whether you use the Strategy Layer (Value Stream / Capability / Resource), the Business Layer (Business Process / Business Function / Business Object), or a mix, the tool automatically detects your modeling dialect and adjusts its internal logic accordingly.
 
 4. **Enterprise-grade performance**. Validates complex models (~1000 elements, ~100 views) in < 15 seconds.
-
-5. **Smart Noise Reduction**. To prevent "cascading failures," the validator identifies root causes. If a fundamental constraint (like hierarchy) fails, the tool automatically hides derivative violations, allowing the architect to focus on fixing the primary structural issues first.
 
 ## Prerequisites
 
@@ -63,23 +61,30 @@ To use this script inside Archi:
 ### The Console Report
 
 ```Text
-======================================================================
-                          VALIDATION REPORT
-======================================================================
+######################################################################
+                        COVO VALIDATION REPORT
+######################################################################
 
 OVERALL STATUS: FAILED
+
+SELECTION:
+ - CONSTRUCTION mode
+ - 70 views
+ - 621 elements (value-stream, capability, business-object)
+ - 1340 horizontal relationships
+ - 601 vertical relationships (composition-relationship)
 
 VIOLATION SUMMARY:
  - Constraints failed: C5
  - Total violations: 1
 
-----------------------------------------------------------------------
-                   VALUE STREAM COLLECTION FAILURES
-----------------------------------------------------------------------
 
- [!!] C5 - Downward coherence - Connect users to the grid
- --------------------------------------------------
- 'Integrate connection into energy grid' (L1 Value Stream) --> 'Perform connection work' (L1 Value Stream) does not have a corresponding relationship between their children.
+======================================================================
+ VIEW: N1 CONNECT USERS TO THE GRID (1 violations)
+ Path: Views / Level 1
+======================================================================
+ [!!] C05 - Missing corresponding relationship between children:
+ - 'Integrate connection into energy grid' (L1 Value Stream) --> 'Perform connection work' (L1 Value Stream)
 
 
 Validation completed in 797 ms
@@ -92,7 +97,7 @@ The tool enforces 15 constraints (C1-13, V1-2) based on the principle of semanti
 * **Behavior implies structure**: If stage A triggers stage B or capability A enables capability B, then their objects have a status dependency.
 * **Structure validates behavior**: If the structural dependency is missing, the behavioral logic is considered invalid.
 
-This ensures that your Business Object Model (BOM) is not just a drawing, but an artifact grounded in the value creation logic.
+This ensures that your object model is not just a drawing, but an artifact grounded in value creation logic.
 
 ## Configuration
 
@@ -111,8 +116,8 @@ The tool works out-of-the-box, but you can tweak settings in config.js:
 
 ## Citation
 
-If you use this tool in academic work, please cite the accompanying EDOC paper:
-[Citation Placeholder: "Grounding Business Object Models in Value Creation", EDOC 2025]
+If you use this tool in academic work, please cite the accompanying paper:
+[Citation Placeholder: "Semantic Symmetry in Business Architecture: Grounding Value Creation in Object Models", EDOC 2025]
 
 ## License
 

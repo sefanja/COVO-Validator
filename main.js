@@ -43,9 +43,10 @@
             globalFailures.push({ constraint: constraint, violations: violations });
         } else {
             if (!viewReports.has(view.id))
-                viewReports.set(view.id, { view: view, path: utils.getViewPath(view), failures: [] });
+                viewReports.set(view.id, { view: view, path: utils.getViewPath(view), violationCount: 0, failures: [] });
 
             const report = viewReports.get(view.id);
+            report.violationCount += violations.size();
             const existingFailure = report.failures.find(f => f.constraint.id === constraint.id);
             if (existingFailure) existingFailure.violations.add(violations);
             else report.failures.push({ constraint: constraint, violations: violations });
@@ -97,26 +98,26 @@
 
     // Validate value stream collections
     for (const [topStreamId, collectionViews] of Object.entries(valueStreamViewCollections)) {
+        const extendedViewCollection = topLevelViews.clone().add(collectionViews);
         const covoModel = utils.buildCovoModel(collectionViews.find());
-        const covoModelExtended = utils.buildCovoModel((topLevelViews.clone().add(collectionViews)).find());
-        
+        const covoModelExtended = utils.buildCovoModel(extendedViewCollection.find());
+
+        const viewLevelMap = new Map();
+        extendedViewCollection.each(v => viewLevelMap.set(v.id, utils.getMaxLevel(utils.getUniqueConcepts($(v).find('element')))));
+
         for (const constraint of constraints.filter(r => ['C04', 'C05', 'C06', 'C07', 'C08', 'C09', 'C10', 'C11', 'C12', 'C13'].includes(r.id))) {
             const violations = constraint.validate(['C04', 'C09'].includes(constraint.id) ? covoModelExtended : covoModel, strict);
-            
-            if (violations.size() > 0) {
-                const viewLevelMap = new Map();
-                collectionViews.each(v => viewLevelMap.set(v.id, utils.getMaxLevel($(v).find())));
-                violations.each(viol => {
-                    const conceptLevel = utils.getLevel(viol);
-                    const candidateViews = utils.getIntersection($(viol).viewRefs(), collectionViews);
-                    const selectedView = candidateViews.filter(v => viewLevelMap.get(v.id) === conceptLevel).first() || candidateViews.first();
-                    rememberFailures(selectedView, constraint, $(viol));
-                });
-            } else if (['C12', 'C13'].includes(constraint.id)) {
-                // Validate value stream stages
+            violations.each(viol => {
+                const violLevel = utils.getLevel(viol);
+                const candidateViews = utils.getIntersection($(viol).viewRefs(), extendedViewCollection);
+                const selectedView = candidateViews.filter(v => viewLevelMap.get(v.id) === violLevel).first() || candidateViews.first();
+                rememberFailures(selectedView, constraint, $(viol));
+            });
+
+            // Validate value stream stages
+            if (violations.size() === 0 && ['C12', 'C13'].includes(constraint.id))
                 for (const stage of valueStageZones.filter(z => z.topStreamId === topStreamId))
                     rememberFailures(stage.view, constraint, constraint.validate(stage.covoModel, strict));
-            }
         }
     }
 
@@ -127,9 +128,9 @@
         // Construct reference context
         const domainHeader = utils.identifyDomainHeader(covoModel);
         const headerLevel = utils.getLevel(domainHeader);
-        const lowestLevel = Math.max(...utils.getLevels(covoModel.objects));
+        const maxLevel = utils.getMaxLevel(covoModel.objects);
         let domainObjects = $(domainHeader);
-        for (let i = 0; i < lowestLevel - headerLevel; i++)
+        for (let i = 0; i < maxLevel - headerLevel; i++)
             domainObjects = utils.getChildren(domainObjects);
         const domainIsBasedOn = domainObjects.rels().filter(r => r.type !== config.REL_TYPES.isRefinedBy && r.source.type === config.ELEMENT_TYPES.object && r.target.type === config.ELEMENT_TYPES.object); // all rels in the entire model between and with domain objects
         const collectionIsBasedOn = utils.getIntersection(valueStreamsCovoModel.isBasedOn, domainIsBasedOn); // rels scoped back to value stream and top-level views (what you select is what you get)
@@ -149,19 +150,27 @@
     // --- REPORT GENERATION ---
     console.clear();
     console.show();
-    console.log(`COVO ${strict ? 'AUDIT' : 'CONSTRUCTION'} Report on Selection:`);
+    console.log('######################################################################');
+    console.log('                        COVO VALIDATION REPORT');
+    console.log('######################################################################');
+    console.log();
+    console.log(`OVERALL STATUS: ${summary.totalViolations > 0 ? 'FAILED' : 'PASSED'}`);
+    console.log();
+    console.log('SELECTION:');
+    console.log(` - ${strict ? 'AUDIT' : 'CONSTRUCTION'} mode`);
     console.log(` - ${views.size()} views`);
     console.log(` - ${globalCovoModel.elements.size()} elements (${config.ELEMENT_TYPES.stream}, ${config.ELEMENT_TYPES.capability}, ${config.ELEMENT_TYPES.object})`);
     console.log(` - ${globalCovoModel.horizontalRelationships.size()} horizontal relationships`);
     console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships (${config.REL_TYPES.isRefinedBy})`);
     console.log();
-    console.log('Violation Summary:');
-    console.log(` - Violations: ${summary.totalViolations}`);
+    console.log('VIOLATION SUMMARY:');
     console.log(` - Constraints failed: ${[...summary.failed].sort().join(', ')}`);
+    console.log(` - Total violations: ${summary.totalViolations}`);
     console.log();
 
     // Global report
     if (globalFailures.length > 0) {
+        console.log();
         console.log('======================================================================');
         console.log(' GLOBAL STRUCTURAL INTEGRITY');
         console.log('======================================================================');
@@ -171,13 +180,13 @@
     // Per view report (sorted)
     Array.from(viewReports)
     .sort((a, b) => `${a[1].path} / ${a[1].view.name}`.localeCompare(`${b[1].path} / ${b[1].view.name}`))
-    .forEach(([_, report]) => {
+    .forEach(([_, viewReport]) => {
         console.log();
         console.log('======================================================================');
-        console.log(` VIEW: ${report.view.name.toUpperCase()}`);
-        console.log(` Path: ${report.path}`);
+        console.log(` VIEW: ${viewReport.view.name.toUpperCase()} (${viewReport.violationCount} violations)`);
+        console.log(` Path: ${viewReport.path}`);
         console.log('======================================================================');
-        renderFailures(report.failures);
+        renderFailures(viewReport.failures);
     });
 
     /**
@@ -195,5 +204,6 @@
         });
     }
 
+    console.log();
     console.log(`Validation completed in ${Date.now() - start} ms`);
 })();

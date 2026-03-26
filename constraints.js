@@ -254,33 +254,33 @@ var constraints = (function() {
             id: 'V1',
             validate: function(covoModel, referenceCovoModel) {
                 const violations = $();
-                const lowestLevel = Math.max(...utils.getLevels(covoModel.elements));
-                const lowestElements = covoModel.elements.filter(e => utils.getLevel(e) === lowestLevel);
-                const lowestRelationships = covoModel.horizontalRelationships.filter(r => utils.getLevel(r) === lowestLevel);
+                const maxLevel = utils.getMaxLevel(covoModel.elements);
+                const lowestElements = covoModel.elements.filter(e => utils.getLevel(e) === maxLevel);
+                const lowestRelationships = covoModel.horizontalRelationships.filter(r => utils.getLevel(r) === maxLevel);
                 const configuredElementTypes = Object.entries(config.ELEMENT_TYPES).map(([_, v]) => v);
                 configuredElementTypes.forEach(t1 => {
                     const elementsOfType = lowestElements.filter(t1);
                     if (elementsOfType.size() > 0) {
-                        violations.add(referenceCovoModel.elements.filter(e => utils.getLevel(e) === lowestLevel && e.type === t1).not(elementsOfType));
+                        violations.add(referenceCovoModel.elements.filter(e => utils.getLevel(e) === maxLevel && e.type === t1).not(elementsOfType));
                     }
                     configuredElementTypes.forEach(t2 => {
                         const relationshipsOfType = lowestRelationships.filter(r => r.source.type === t1 && r.target.type === t2);
                         if (relationshipsOfType.size() > 0) {
-                            violations.add(referenceCovoModel.horizontalRelationships.filter(r => utils.getLevel(r) === lowestLevel && r.source.type === t1 && r.target.type === t2).not(relationshipsOfType));
+                            violations.add(referenceCovoModel.horizontalRelationships.filter(r => utils.getLevel(r) === maxLevel && r.source.type === t1 && r.target.type === t2).not(relationshipsOfType));
                         }
                     })
                 });
 
                 return violations;
             },
-            describe: 'Missing on view'
+            describe: 'Missing in this view'
         },
         {
             id: 'V2',
             validate: function(covoModel, referenceCovoModel) {
                 return covoModel.elements.clone().add(covoModel.horizontalRelationships).not(referenceCovoModel.concepts);
             },
-            describe: 'Missing on a value stream view'
+            describe: 'Not in any value stream view'
         }
     ];
 
