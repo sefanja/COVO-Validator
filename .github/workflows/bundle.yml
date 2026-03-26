@@ -1,6 +1,13 @@
 name: Auto-Bundle Script
 
-on: [push]
+on:
+  push:
+    branches:
+      - 'main'
+
+permissions:
+  contents: write
+
 jobs:
   bundle:
     runs-on: ubuntu-latest
