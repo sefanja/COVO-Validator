@@ -662,6 +662,7 @@ var utils = (function() {
         getValueStageZones: getValueStageZones,
 
         // UI
+        formatType: formatType,
         formatConcept: formatConcept,
         getViewPath: getViewPath
     };
@@ -1112,9 +1113,9 @@ var constraints = (function() {
     console.log('SELECTION:');
     console.log(` - ${strict ? 'AUDIT' : 'CONSTRUCTION'} mode`);
     console.log(` - ${views.size()} views`);
-    console.log(` - ${globalCovoModel.elements.size()} elements (${config.ELEMENT_TYPES.stream}, ${config.ELEMENT_TYPES.capability}, ${config.ELEMENT_TYPES.object})`);
+    console.log(` - ${globalCovoModel.elements.size()} elements (${utils.formatType(config.ELEMENT_TYPES.stream)}, ${utils.formatType(config.ELEMENT_TYPES.capability)}, ${utils.formatType(config.ELEMENT_TYPES.object)})`);
     console.log(` - ${globalCovoModel.horizontalRelationships.size()} horizontal relationships`);
-    console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships (${config.REL_TYPES.isRefinedBy})`);
+    console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships (${utils.formatType(config.REL_TYPES.isRefinedBy)})`);
     console.log();
     console.log('VIOLATION SUMMARY:');
     console.log(` - Constraints failed: ${[...summary.failed].sort().join(', ')}`);
