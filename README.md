@@ -69,7 +69,7 @@ VIOLATION SUMMARY:
 
 
 ======================================================================
- VIEW: L1 VALUE STREAM V (1 violations)
+ VIEW: L1 VALUE STREAM V (1 violation)
  Type: Value Stream View
  Path: Views / Level 1
 ======================================================================

@@ -193,7 +193,7 @@
     .forEach(([_, viewFailure]) => {
         console.log();
         console.log('======================================================================');
-        console.log(` VIEW: ${viewFailure.view.name.toUpperCase()} (${viewFailure.violationCount} violations)`);
+        console.log(` VIEW: ${viewFailure.view.name.toUpperCase()} (${viewFailure.violationCount} violation${viewFailure.violationCount > 1 ? 's' : ''})`);
         console.log(` Type: ${viewMetadata.get(viewFailure.view.id)}`);
         console.log(` Path: ${viewFailure.path}`);
         console.log('======================================================================');
