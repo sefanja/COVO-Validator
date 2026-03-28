@@ -65,8 +65,7 @@ SELECTION:
  - 12 vertical relationships (Composition Relationship)
 
 VIOLATION SUMMARY:
- - Constraints failed: C12
- - Total violations: 1
+ - C12: 1 violation
 
 
 ======================================================================

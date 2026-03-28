@@ -26,9 +26,9 @@
     load(`${__DIR__}utils.js`);
 
     // --- DATA STRUCTURES FOR REPORTING ---
-    const globalFailures = [];
-    const viewReports = new Map(); // Key: view.id, Value: { view, path, failures }
-    const summary = { failed: new Set(), totalViolations: 0 };
+    const modelFailures = [];
+    const viewFailures = new Map(); // Key: view.id, Value: { view, path, failures }
+    const violationCounts = new Map(); // Key: constraint.id, Value: Number
 
     /**
      * Remembers failures for reporting.
@@ -36,16 +36,16 @@
     function rememberFailures(view, constraint, violations) {
         if (violations.size() === 0) return;
 
-        summary.totalViolations += violations.size();
-        summary.failed.add(constraint.id);
+        if (!violationCounts.has(constraint.id)) violationCounts.set(constraint.id, 0);
+        violationCounts.set(constraint.id, violationCounts.get(constraint.id) + violations.size());
 
         if (!view) {
-            globalFailures.push({ constraint: constraint, violations: violations });
+            modelFailures.push({ constraint: constraint, violations: violations });
         } else {
-            if (!viewReports.has(view.id))
-                viewReports.set(view.id, { view: view, path: utils.getViewPath(view), violationCount: 0, failures: [] });
+            if (!viewFailures.has(view.id))
+                viewFailures.set(view.id, { view: view, path: utils.getViewPath(view), violationCount: 0, failures: [] });
 
-            const report = viewReports.get(view.id);
+            const report = viewFailures.get(view.id);
             report.violationCount += violations.size();
             const existingFailure = report.failures.find(f => f.constraint.id === constraint.id);
             if (existingFailure) existingFailure.violations.add(violations);
@@ -162,7 +162,7 @@
     console.log('                        COVO VALIDATION REPORT');
     console.log('######################################################################');
     console.log();
-    console.log(`OVERALL STATUS: ${summary.totalViolations > 0 ? 'FAILED' : 'PASSED'}`);
+    console.log(`OVERALL STATUS: ${violationCounts.size > 0 ? 'FAILED' : 'PASSED'}`);
     console.log();
     console.log('SELECTION:');
     console.log(` - ${strict ? 'AUDIT' : 'CONSTRUCTION'} mode`);
@@ -171,33 +171,33 @@
     console.log(` - ${globalCovoModel.horizontalRelationships.size()} horizontal relationships`);
     console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships (${utils.formatType(config.REL_TYPES.isRefinedBy)})`);
     console.log();
-    if (summary.totalViolations > 0) {
+    if (violationCounts.size > 0) {
         console.log('VIOLATION SUMMARY:');
-        console.log(` - Constraints failed: ${[...summary.failed].sort().join(', ')}`);
-        console.log(` - Total violations: ${summary.totalViolations}`);
+        Array.from(violationCounts).sort((a, b) => a[0].localeCompare(b[0])).forEach(([id, count]) =>
+            console.log(` - ${id}: ${count} violation${count > 1 ? 's' : ''}`));
         console.log();
     }
 
     // Global report
-    if (globalFailures.length > 0) {
+    if (modelFailures.length > 0) {
         console.log();
         console.log('======================================================================');
         console.log(' GLOBAL STRUCTURAL INTEGRITY');
         console.log('======================================================================');
-        renderFailures(globalFailures);
+        renderFailures(modelFailures);
     }
 
     // Per view report (sorted)
-    Array.from(viewReports)
+    Array.from(viewFailures)
     .sort((a, b) => `${a[1].path} / ${a[1].view.name}`.localeCompare(`${b[1].path} / ${b[1].view.name}`))
-    .forEach(([_, viewReport]) => {
+    .forEach(([_, viewFailure]) => {
         console.log();
         console.log('======================================================================');
-        console.log(` VIEW: ${viewReport.view.name.toUpperCase()} (${viewReport.violationCount} violations)`);
-        console.log(` Type: ${viewMetadata.get(viewReport.view.id)}`);
-        console.log(` Path: ${viewReport.path}`);
+        console.log(` VIEW: ${viewFailure.view.name.toUpperCase()} (${viewFailure.violationCount} violations)`);
+        console.log(` Type: ${viewMetadata.get(viewFailure.view.id)}`);
+        console.log(` Path: ${viewFailure.path}`);
         console.log('======================================================================');
-        renderFailures(viewReport.failures);
+        renderFailures(viewFailure.failures);
     });
 
     /**

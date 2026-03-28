@@ -251,7 +251,7 @@ var constraints = (function() {
             describe: 'Missing corresponding relationship between stages or capabilities'
         },
         {
-            id: 'V1',
+            id: 'V01',
             validate: function(covoModel, referenceCovoModel) {
                 const violations = $();
                 const maxLevel = utils.getMaxLevel(covoModel.elements);
@@ -276,7 +276,7 @@ var constraints = (function() {
             describe: 'Missing in this view'
         },
         {
-            id: 'V2',
+            id: 'V02',
             validate: function(covoModel, referenceCovoModel) {
                 return covoModel.elements.clone().add(covoModel.horizontalRelationships).not(referenceCovoModel.concepts);
             },
