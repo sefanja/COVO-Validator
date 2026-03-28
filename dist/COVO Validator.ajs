@@ -1,6 +1,6 @@
 // COVO Validator - Bundled Version
-// Build Date: 2026-03-28 14:36:19 UTC
-// GitHub Commit: f74ee70b8b0312062a9477d6fbb34a046e018697
+// Build Date: 2026-03-28 15:02:31 UTC
+// GitHub Commit: afc4574d29ac0f0e800680eaabd0c538e67ee2e8
 
 var config = (function() {
 
@@ -1151,7 +1151,7 @@ var constraints = (function() {
     .forEach(([_, viewFailure]) => {
         console.log();
         console.log('======================================================================');
-        console.log(` VIEW: ${viewFailure.view.name.toUpperCase()} (${viewFailure.violationCount} violations)`);
+        console.log(` VIEW: ${viewFailure.view.name.toUpperCase()} (${viewFailure.violationCount} violation${viewFailure.violationCount > 1 ? 's' : ''})`);
         console.log(` Type: ${viewMetadata.get(viewFailure.view.id)}`);
         console.log(` Path: ${viewFailure.path}`);
         console.log('======================================================================');
