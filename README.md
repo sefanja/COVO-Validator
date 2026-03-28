@@ -103,11 +103,11 @@ By default, ArchiMate does not allow the *Access* relationship between a Capabil
 1. **Business**: Substitute the strategy elements with **Business Process**, **Business Function**, and **Business Object**.
 2. **Standard**: Use a **Directed Association** and visually nest the object inside the capability.
 3. **Custom**: Enable the *Access* relationship in Archi by modifying the underlying model definitions. This allows for the most expressive COVO modeling experience:
-   a. Close Archi.
-   b. Locate `relationships.xml` in your Archi installation folder, typically under: `plugins/com.archimatetool.model_x.x.x/model/relationships.xml`.
-   c. Find the section `<source concept="Capability">`.
-   d. Find the line `<target concept="BusinessObject" relations="o"/>` and change `relations="o"` to `relations="ao"`.
-   e. Restart Archi.
+   1. Close Archi.
+   2. Locate `relationships.xml` in your Archi installation folder, typically under: `plugins/com.archimatetool.model_x.x.x/model/relationships.xml`.
+   3. Find the section `<source concept="Capability">`.
+   4. Find the line `<target concept="BusinessObject" relations="o"/>` and change `relations="o"` to `relations="ao"`.
+   5. Restart Archi.
 
 **Note:** This technical modification deviates from the official ArchiMate 3.2 specification. While it provides the best modeling experience within Archi, the resulting models may show errors when opened in standard Archi installations or when exported via the ArchiMate Exchange Format to other tools.
 
