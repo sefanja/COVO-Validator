@@ -59,24 +59,32 @@
     const objectDomainViews = _EMPTY.clone();
     const valueStreamViews = _EMPTY.clone();
     const valueStreamViewCollections = {};
+    const viewMetadata = new Map();
 
     views.each(view => {
         const covoModel = utils.buildCovoModel($(view).find());
         const topStream = utils.getTopValueStream(covoModel);
         const levels = utils.getLevels(covoModel.elements);
+        let viewType;
 
         if (levels.size === 1 && [...levels][0] === 0) {
             topLevelViews.add(view);
+            viewType = 'Top-Level View';
         } else if (topStream) {
             const id = topStream.id;
             if (!valueStreamViewCollections[id]) valueStreamViewCollections[id] = _EMPTY.clone();
             valueStreamViewCollections[id].add(view);
             valueStreamViews.add(view);
+            viewType = 'Value Stream View';
         } else if (utils.identifyDomainHeader(covoModel)) {
             objectDomainViews.add(view);
+            viewType = 'Object Domain View';
         } else {
             landscapeViews.add(view);
+            viewType = 'Landscape View';
         }
+
+        viewMetadata.set(view.id, viewType);
     });
 
     const valueStageZones = utils.getValueStageZones(valueStreamViews);
@@ -163,10 +171,12 @@
     console.log(` - ${globalCovoModel.horizontalRelationships.size()} horizontal relationships`);
     console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships (${utils.formatType(config.REL_TYPES.isRefinedBy)})`);
     console.log();
-    console.log('VIOLATION SUMMARY:');
-    console.log(` - Constraints failed: ${[...summary.failed].sort().join(', ')}`);
-    console.log(` - Total violations: ${summary.totalViolations}`);
-    console.log();
+    if (summary.totalViolations > 0) {
+        console.log('VIOLATION SUMMARY:');
+        console.log(` - Constraints failed: ${[...summary.failed].sort().join(', ')}`);
+        console.log(` - Total violations: ${summary.totalViolations}`);
+        console.log();
+    }
 
     // Global report
     if (globalFailures.length > 0) {
@@ -184,6 +194,7 @@
         console.log();
         console.log('======================================================================');
         console.log(` VIEW: ${viewReport.view.name.toUpperCase()} (${viewReport.violationCount} violations)`);
+        console.log(` Type: ${viewMetadata.get(viewReport.view.id)}`);
         console.log(` Path: ${viewReport.path}`);
         console.log('======================================================================');
         renderFailures(viewReport.failures);

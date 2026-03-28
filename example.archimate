@@ -124,6 +124,24 @@
       <child xsi:type="archimate:DiagramObject" id="id-a5bc2e0fe1ed4d6bb19234c493bdeced" targetConnections="id-3485dc2491684e6c97f1d95d7f812503" textPosition="1" archimateElement="id-8264a58c947c4e68b7640bc3a048ba33">
         <bounds x="36" y="588" width="120" height="37"/>
       </child>
+      <child xsi:type="archimate:Note" id="id-d693e8297b09403db5fc77c17ea396b5" textAlignment="1">
+        <bounds x="396" y="12" width="325" height="97"/>
+        <content>The L0 value stream is decomposed into L1 stages before linking them to L1 capabilities. By only linking same-level elements, COVO allows for consistent zooming across levels.</content>
+      </child>
+      <child xsi:type="archimate:Note" id="id-9a61cc23487f4ddc93390a7833da4dbe" textAlignment="1">
+        <bounds x="396" y="132" width="325" height="241"/>
+        <content>A capability can have one of three roles in each stage:&#xD;
+&#xD;
+1. Principal capability (e.g., C.1, C.3): Bears primary responsibility for the stage's outcome. When its object reaches the desired state, the stage exits.&#xD;
+&#xD;
+2. Enabling capability with co-manifestation (e.g., C.2): Manifests concurrently to enable the principal capability.&#xD;
+&#xD;
+3. Enabling capability without co-manifestation (e.g., C.4): Impacts value creation in this stage by having transformed its object outside the scope of this specific stage.</content>
+      </child>
+      <child xsi:type="archimate:Note" id="id-67ee7e92084040eaa8e6d2c0ad8fac60" textAlignment="1">
+        <bounds x="396" y="420" width="325" height="205"/>
+        <content>The object relationships are exact mirrors of the relationships between stages and capabilities. Their labels express the nature of their dependencies.</content>
+      </child>
     </element>
     <element xsi:type="archimate:ArchimateDiagramModel" name="L1 Value Stream W" id="id-bcb44231ee9a465491fe3d66ded06166">
       <child xsi:type="archimate:DiagramObject" id="id-08a667a059d04bd5be979c687879ac4b" archimateElement="id-6bbf772c77654970b7a70432c5af74f9">
@@ -198,6 +216,18 @@
           </child>
         </child>
       </child>
+      <child xsi:type="archimate:Note" id="id-5893e8da6cee4f74900e91fd743fcdcf" textAlignment="1">
+        <bounds x="192" y="12" width="325" height="373"/>
+        <content>The capabilities at this level should provide a classification of activities based on Starreveld's value cycle. We will provide further guidance in the future. For now, we distinguish three primary domains:&#xD;
+&#xD;
+1. Supply or input: Activities needed to procure goods and services directly related to the organization's primary value propositions.&#xD;
+&#xD;
+2. Production or transformation: Core value-adding activities. These are modeled independently of the other two domains, which serve to integrate this core domain into its larger economic environment. Complex organizations providing value at multiple levels (e.g., ideas, physical products, services) may split this domain into multiple layers.&#xD;
+&#xD;
+3. Delivery or output: Customer interaction, including establishing agreements, invoicing, and providing customer care.&#xD;
+&#xD;
+Note that this example is limited to L1, but in practice, these capabilities are further refined to Level 2 or 3 to reach operational granularity.</content>
+      </child>
     </element>
     <element xsi:type="archimate:ArchimateDiagramModel" name="L1 Object Domain O" id="id-f050c296c5964b6aafff461be0bc8a81">
       <child xsi:type="archimate:DiagramObject" id="id-a4832061be804655b6e33ee41c1cb22c" textPosition="1" archimateElement="id-dfba8f17bb21440e8dd4d491581cfb9c">
@@ -217,6 +247,10 @@
       </child>
       <child xsi:type="archimate:DiagramObject" id="id-98874486e0f443afaa86d9814a9bd00b" fillColor="#ffffff" textPosition="1" archimateElement="id-00566dd567934cfca82eecad980c8c06">
         <bounds x="12" y="12" width="349" height="25"/>
+      </child>
+      <child xsi:type="archimate:Note" id="id-ba009175b83f4e3bb204c5ac70fe4c03" textAlignment="1">
+        <bounds x="372" y="12" width="325" height="181"/>
+        <content>This view provides a consolidated overview of all object relationships within the chosen object domain. COVO guarantees that these relationships are strictly derived from capability interactions in value creation.</content>
       </child>
     </element>
     <element xsi:type="archimate:ArchimateDiagramModel" name="L1 Objects" id="id-af73790761e942fb996189f604d1307d">
@@ -238,6 +272,10 @@
         <child xsi:type="archimate:DiagramObject" id="id-d4f2823408ae41abb0cf560310437eac" targetConnections="id-50ed041c9a304989a6e7fd5bf9c991f6" textPosition="1" archimateElement="id-8264a58c947c4e68b7640bc3a048ba33">
           <bounds x="12" y="180" width="120" height="37"/>
         </child>
+      </child>
+      <child xsi:type="archimate:Note" id="id-205e6eafe1534cb6b8244844fa861a33" textAlignment="1">
+        <bounds x="168" y="12" width="325" height="229"/>
+        <content>This view establishes the object hierarchy, mirroring the capability hierarchy.</content>
       </child>
     </element>
     <element xsi:type="archimate:ArchimateDiagramModel" name="L0" id="id-3fe20f98d5344b2393ad64d422fbbd15">
@@ -261,6 +299,14 @@
       </child>
       <child xsi:type="archimate:DiagramObject" id="id-1e097140e4c1419aa80b95542304cfa6" targetConnections="id-09c808e93797419cbcb2b2ebf72e0ad2" textPosition="1" archimateElement="id-37014ef5f8da401ea41a14f9a4cc600e">
         <bounds x="24" y="72" width="145" height="49"/>
+      </child>
+      <child xsi:type="archimate:Note" id="id-3c5a2f8cb7c7443cb8e7d1be14b4792a" textAlignment="1">
+        <bounds x="180" y="12" width="325" height="109"/>
+        <content>Best practice: for each value stream, define the value proposition and the primary value-receiving stakeholder.</content>
+      </child>
+      <child xsi:type="archimate:Note" id="id-d8b31ec9a06d4d629370304e5d964387" textAlignment="1">
+        <bounds x="180" y="144" width="325" height="73"/>
+        <content>Mainstream frameworks typically do not model capabilities and objects at this highest level. However, COVO establishes a fractal pattern, allowing for consistent zooming across levels.</content>
       </child>
     </element>
   </folder>

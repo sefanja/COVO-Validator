@@ -2,7 +2,7 @@
 
 ## Automating Semantic Symmetry in Business Architecture Modeling
 
-The COVO Validator is a jArchi script designed to validate ArchiMate models against the [Capability-Object-Value Ontology (COVO)](https://ceur-ws.org/Vol-4171/paper_41.pdf). Building upon the original ontology, this tool implements a refined set of formal constraints (C1–C13) to establish semantic symmetry between organizational behavior (value streams and capabilities) and structure (objects).
+The COVO Validator is a jArchi script designed to validate ArchiMate models against the [Capability-Object-Value Ontology (COVO)](https://ceur-ws.org/Vol-4171/paper_41.pdf). Building upon the original ontology, this tool implements a refined set of formal constraints (C1-13, V1-2) to establish semantic symmetry between organizational behavior (value streams and capabilities) and structure (objects).
 
 ## Key Features
 
@@ -42,10 +42,10 @@ The COVO Validator is a jArchi script designed to validate ArchiMate models agai
 
 **New to COVO?** We recommend starting with the `example.archimate` model included in this repository. It contains a valid reference structure to test the validator.
 
-1. **Open Model**: Load your ArchiMate model (or [example.archimate](https://github.com/sefanja/COVO-Validator/blob/main/example.archimate)) in Archi.
-2. **Select Scope**: In the Model Tree, select the views, folders, or the entire model you wish to validate.
+1. **Open model**: Load your ArchiMate model (or [example.archimate](https://github.com/sefanja/COVO-Validator/blob/main/example.archimate)) in Archi.
+2. **Select scope**: In the Model Tree, select the views, folders, or the entire model you wish to validate.
 3. **Run**: Right-click the selection -> `Scripts` -> `COVO Validator`.
-4. **Choose Profile**: Select *Construction* or *Audit* from the dialog.
+4. **Choose profile**: Select *Construction* or *Audit* from the dialog.
 5. **Analyze**: Open the Script Console in Archi to view the report.
 
 ### The Console Report
@@ -58,26 +58,27 @@ The COVO Validator is a jArchi script designed to validate ArchiMate models agai
 OVERALL STATUS: FAILED
 
 SELECTION:
- - CONSTRUCTION mode
- - 70 views
- - 621 elements (Value Stream, Capability, Business Object)
- - 1340 horizontal relationships
- - 601 vertical relationships (Composition Relationship)
+ - AUDIT mode
+ - 6 views
+ - 16 elements (Value Stream, Capability, Business Object)
+ - 18 horizontal relationships
+ - 12 vertical relationships (Composition Relationship)
 
 VIOLATION SUMMARY:
- - Constraints failed: C05
+ - Constraints failed: C12
  - Total violations: 1
 
 
 ======================================================================
- VIEW: L1 CONNECT USERS TO THE GRID (1 violations)
+ VIEW: L1 VALUE STREAM V (1 violations)
+ Type: Value Stream View
  Path: Views / Level 1
 ======================================================================
- [!!] C05 - Missing corresponding relationship between children:
- - 'Integrate connection into energy grid' (L1 Value Stream) --> 'Perform connection work' (L1 Value Stream)
+ [!!] C12 - Missing corresponding object relationship:
+ - 'Capability C.4' (L1 Capability) --> 'Capability C.2' (L1 Capability)
 
 
-Validation completed in 797 ms
+Validation completed in 264 ms
 ```
 
 ## Modeling Guidelines
@@ -90,13 +91,11 @@ To ensure the COVO Validator correctly interprets your model, please follow thes
 
 ## Reference & Examples
 
-To see the COVO method applied in a large-scale, real-world environment within the Dutch energy sector, explore the [**NBility Model**](https://nbility.netbeheernederland.nl/model/).
-
-The upcoming version (2.4) extensively uses COVO principles in its 'core' domain. For a concrete example of a COVO-compliant structure, see:
+To see the COVO method applied in a large-scale, real-world environment within the Dutch energy sector, explore the [**NBility Model**](https://nbility.netbeheernederland.nl/model/). The upcoming version (2.4) extensively uses COVO principles in its 'core' domain. For a concrete example of a COVO-compliant structure, see:
 
 * [**N2 Waardestroom C.A**](https://nbility.netbeheernederland.nl/review-2.4/?view=id-caad12a9fb99480c8037d509a0dbe0c2)
 
-This repository also includes a local `example.archimate` file, which serves as a sandbox for testing the validator's constraints.
+This repository also includes a local [example.archimate](https://github.com/sefanja/COVO-Validator/blob/main/example.archimate) file, which serves as a sandbox for testing the validator's constraints.
 
 ### Capability-to-Object Access (Optional)
 
