@@ -35,8 +35,9 @@ The COVO Validator is a jArchi script designed to validate ArchiMate models agai
 3. Name the new script `COVO Validator`
 4. Click `Edit` if the script editor does not automatically open
 5. [**Click here to open the script code**](https://raw.githubusercontent.com/sefanja/COVO-Validator/refs/heads/main/dist/COVO%20Validator.ajs)
-6. Select all the text (`Ctrl+A`), copy it (`Ctrl+C`), and **paste** it into the script editor
-7. **Save** the script (click the disk icon or press `Ctrl+S`)
+6. Select all the text (`Ctrl+A`) and copy it (`Ctrl+C`)
+7. In the the script editor, select all text (`Ctrl+A`) and overwrite it with the previously copied text (`Ctrl+V`).
+8. **Save** the script (click the disk icon or press `Ctrl+S`)
 
 ## Usage
 
