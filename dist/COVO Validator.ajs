@@ -1,6 +1,6 @@
 // COVO Validator - Bundled Version
-// Build Date: 2026-04-01 08:58:52 UTC
-// GitHub Commit: d2898353fc62237f0f50cdd267e976b3d0857deb
+// Build Date: 2026-05-14 10:32:26 UTC
+// GitHub Commit: 041d6387ee0a034778efb5abda06a16361737581
 
 var config = (function() {
 
@@ -1102,14 +1102,14 @@ var constraints = (function() {
         const collectionIsBasedOn = utils.getIntersection(valueStreamsCovoModel.isBasedOn, domainIsBasedOn); // rels scoped back to value stream and top-level views (what you select is what you get)
         const referenceContext = utils.buildCovoModel($(domainHeader).add(collectionIsBasedOn).add(collectionIsBasedOn.ends()));
 
-        for (const constraint of constraints.filter(r => ['V1', 'V2'].includes(r.id)))
+        for (const constraint of constraints.filter(r => ['V01', 'V02'].includes(r.id)))
             rememberFailures(domainView, constraint, constraint.validate(covoModel, referenceContext));
     }
 
     // Validate landscape Views
     for (const landscapeView of landscapeViews) {
         const covoModel = utils.buildCovoModel($(landscapeView).find());
-        for (const constraint of constraints.filter(r => ['V1', 'V2'].includes(r.id)))
+        for (const constraint of constraints.filter(r => ['V01', 'V02'].includes(r.id))) 
             rememberFailures(landscapeView, constraint, constraint.validate(covoModel, valueStreamsCovoModel));
     }
 
