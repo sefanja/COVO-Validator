@@ -144,14 +144,14 @@
         const collectionIsBasedOn = utils.getIntersection(valueStreamsCovoModel.isBasedOn, domainIsBasedOn); // rels scoped back to value stream and top-level views (what you select is what you get)
         const referenceContext = utils.buildCovoModel($(domainHeader).add(collectionIsBasedOn).add(collectionIsBasedOn.ends()));
 
-        for (const constraint of constraints.filter(r => ['V1', 'V2'].includes(r.id)))
+        for (const constraint of constraints.filter(r => ['V01', 'V02'].includes(r.id)))
             rememberFailures(domainView, constraint, constraint.validate(covoModel, referenceContext));
     }
 
     // Validate landscape Views
     for (const landscapeView of landscapeViews) {
         const covoModel = utils.buildCovoModel($(landscapeView).find());
-        for (const constraint of constraints.filter(r => ['V1', 'V2'].includes(r.id)))
+        for (const constraint of constraints.filter(r => ['V01', 'V02'].includes(r.id))) 
             rememberFailures(landscapeView, constraint, constraint.validate(covoModel, valueStreamsCovoModel));
     }
 
