@@ -37,7 +37,7 @@ var constraints = (function() {
                     scope = utils.filterByLevelOffset(scope, -1);
 
                     // Exclude enabelement relations if we cannot check for the top-level value stream exception
-                    const manifestationLevels = utils.getLevels(covoModel.isManifestedBy);
+                    const manifestationLevels = utils.getLevels(covoModel.isPrincipalOf);
                     scope = scope.filter(r =>
                         r.source.type === config.ELEMENT_TYPES.capability && r.target.type === config.ELEMENT_TYPES.capability
                         ? manifestationLevels.has(utils.getLevel(r))
@@ -57,8 +57,8 @@ var constraints = (function() {
                     if (r.source.type === config.ELEMENT_TYPES.capability && r.target.type === config.ELEMENT_TYPES.capability) {
                         // Exception if both parents are principal
                         if (utils.isOverlapping(
-                            utils.getRoots(utils.getTargets(pSrc, covoModel.isManifestedBy)),
-                            utils.getRoots(utils.getTargets(pTgt, covoModel.isManifestedBy))
+                            utils.getRoots(utils.getTargets(pSrc, covoModel.isPrincipalOf)),
+                            utils.getRoots(utils.getTargets(pTgt, covoModel.isPrincipalOf))
                         )) return false;
                         // Exception for enablement cycles
                         if (utils.canReach(pTgt, pSrc, covoModel.enables)) return false;
@@ -144,11 +144,11 @@ var constraints = (function() {
                 let scope = covoModel.capabilities.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.enables, covoModel.isManifestedBy));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.enables, covoModel.isPrincipalOf));
                 }
 
                 // IDENTIFY VIOLATIONS
-                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enables.clone().add(covoModel.isManifestedBy)));
+                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enables.clone().add(covoModel.isPrincipalOf)));
             },
             describe: 'Not related to a value stream'
         },
@@ -158,10 +158,10 @@ var constraints = (function() {
                 // DETERMINE SCOPE
                 let scope = covoModel.streams.clone();
 
-                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.isManifestedBy));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.isPrincipalOf));
 
                 // IDENTIFY VIOLATIONS
-                return scope.filter(e => utils.getSources(e, covoModel.isManifestedBy).size() !== 1);
+                return scope.filter(e => utils.getSources(e, covoModel.isPrincipalOf).size() !== 1);
             },
             describe: 'Linked to multiple capabilities'
         },
@@ -171,11 +171,11 @@ var constraints = (function() {
                 // DETERMINE SCOPE
                 let scope = covoModel.capabilities.clone();
 
-                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.isManifestedBy));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.isPrincipalOf));
 
                 // IDENTIFY VIOLATIONS
                 return scope.filter(e => {
-                    const streams = utils.getTargets(e, covoModel.isManifestedBy);
+                    const streams = utils.getTargets(e, covoModel.isPrincipalOf);
                     return !utils.isLeaf(e) && streams.size() > utils.getRoots(streams).size();
                 });
             },
@@ -188,13 +188,13 @@ var constraints = (function() {
                 let scope = covoModel.affects.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.isManifestedBy, covoModel.transforms));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.isPrincipalOf, covoModel.transforms));
                 }
 
                 // IDENTIFY VIOLATIONS
                 return scope.filter(r => {
-                    const sObj = utils.getTargets(utils.getSources(r.source, covoModel.isManifestedBy), covoModel.transforms);
-                    const tObj = utils.getTargets(utils.getSources(r.target, covoModel.isManifestedBy), covoModel.transforms);
+                    const sObj = utils.getTargets(utils.getSources(r.source, covoModel.isPrincipalOf), covoModel.transforms);
+                    const tObj = utils.getTargets(utils.getSources(r.target, covoModel.isPrincipalOf), covoModel.transforms);
                     return !utils.isOverlapping(sObj, tObj) && !utils.hasRelationship(tObj, sObj, covoModel.isBasedOn);
                 });
             },
@@ -226,7 +226,7 @@ var constraints = (function() {
                 let scope = covoModel.isBasedOn.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.transforms, covoModel.enables, covoModel.isManifestedBy, covoModel.affects));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.transforms, covoModel.enables, covoModel.isPrincipalOf, covoModel.affects));
                 }
 
                 // IDENTIFY VIOLATIONS
@@ -238,8 +238,8 @@ var constraints = (function() {
                     const enabledCaps = utils.getTargets(tgtCaps, covoModel.enables);
                     if (utils.isOverlapping(enabledCaps, srcCaps)) return false; // (2) enables
 
-                    const srcStages = utils.getTargets(srcCaps, covoModel.isManifestedBy);
-                    const tgtStages = utils.getTargets(tgtCaps, covoModel.isManifestedBy);
+                    const srcStages = utils.getTargets(srcCaps, covoModel.isPrincipalOf);
+                    const tgtStages = utils.getTargets(tgtCaps, covoModel.isPrincipalOf);
                     const sucStages = utils.getTargets(tgtStages, covoModel.affects);
                     if (utils.isOverlapping(sucStages, srcStages)) return false; // (3) affects
 

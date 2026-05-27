@@ -97,20 +97,16 @@ To see the COVO method applied in a large-scale, real-world environment within t
 
 This repository also includes a local [example.archimate](https://github.com/sefanja/COVO-Validator/blob/main/example.archimate) file, which serves as a sandbox for testing the validator's constraints.
 
-### Capability-to-Object Access (Optional)
+### Capability-to-Object Access
 
-By default, ArchiMate does not allow the *Access* relationship between a Capability and a Business Object. You have three options to model this semantic link:
+By default, ArchiMate does not allow the *Access* relationship between a Capability and a Business Object. You have two options to model this link:
 
 1. **Business**: Substitute the strategy elements with **Business Process**, **Business Function**, and **Business Object**.
-2. **Standard**: Use a **Directed Association** and visually nest the object inside the capability.
-3. **Custom**: Enable the *Access* relationship in Archi by modifying the underlying model definitions. This allows for the most expressive COVO modeling experience:
-   1. Close Archi.
-   2. Locate `relationships.xml` in your Archi installation folder, typically under: `plugins/com.archimatetool.model_x.x.x/model/relationships.xml`.
-   3. Find the section `<source concept="Capability">`.
-   4. Find the line `<target concept="BusinessObject" relations="o"/>` and change `relations="o"` to `relations="ao"`.
-   5. Restart Archi.
-
-**Note:** This technical modification deviates from the official ArchiMate 3.2 specification. While it provides the best modeling experience within Archi, the resulting models may show errors when opened in standard Archi installations or when exported via the ArchiMate Exchange Format to other tools.
+2. **Strategy**: Use an **association relationship** from **Capability** to **Business Object** and visually nest the object inside the capability. For a better modeling experience in Archi:
+   1. Click on **Edit**, **Preferences**.
+   2. Navigate to **Connections**, **ARM**.
+   3. In **Relation types offered when creating new relations**, select: **Association relation**.
+   4. Click **Apply and Close**.
 
 ## Project Structure
 

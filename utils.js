@@ -391,7 +391,7 @@ var utils = (function() {
             enables: _EMPTY.clone(),
             coManifestsFor: _EMPTY.clone(),
             isBasedOn: _EMPTY.clone(),
-            isManifestedBy: _EMPTY.clone(),
+            isPrincipalOf: _EMPTY.clone(),
             transforms: _EMPTY.clone()
         };
 
@@ -427,7 +427,7 @@ var utils = (function() {
                         case config.ELEMENT_TYPES.object: covoModel.isBasedOn.add(r); break;
                     }
                 } else if (s === config.ELEMENT_TYPES.capability && t === config.ELEMENT_TYPES.stream) {
-                    covoModel.isManifestedBy.add(r);
+                    covoModel.isPrincipalOf.add(r);
                 } else if (s === config.ELEMENT_TYPES.capability && t === config.ELEMENT_TYPES.object) {
                     covoModel.transforms.add(r);
                 }
