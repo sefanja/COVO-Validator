@@ -83,7 +83,7 @@ Validation completed in 264 ms
 
 ## Metamodel
 
-To ensure that the COVO Validator interprets your model correctly, use one of the following ArchiMate element and relationship types. Your chosen metamodel will be detected automatically.
+To ensure that the COVO Validator interprets your model correctly, use one of the following metamodels. Your chosen metamodel will be detected automatically.
 
 ### Strategy Layer
 

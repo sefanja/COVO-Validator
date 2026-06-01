@@ -8,7 +8,7 @@ var config = (function() {
     const ELEMENT_TYPES = {
         stream: autoDetect('value-stream', 'business-process'),
         capability: autoDetect('capability', 'business-function'),
-        object: autoDetect('resource', 'business-object')
+        object: 'business-object'
     };
 
     const REL_TYPES = {
@@ -18,11 +18,11 @@ var config = (function() {
         enablesWithoutCoManifestation: 'flow-relationship',
         isBasedOn: 'association-relationship',
         isPrincipalOf: 'serving-relationship',
-        canTransform: ELEMENT_TYPES.capability === 'business-function' && ELEMENT_TYPES.object === 'business-object' ? 'access-relationship' : 'association-relationship'
+        canTransform: ELEMENT_TYPES.capability === 'business-function' ? 'access-relationship' : 'association-relationship'
     }
 
     // ASSUMED RELATIONSHIP DIRECTIONS:
-    // refinement: from parent to child
+    // isRefinedBy: from parent to child
     // affects: from predecessor to successor
     // enablesWithCoManifestation: from provider to consumer
     // enablesWithoutCoManifestation: from provider to consumer
