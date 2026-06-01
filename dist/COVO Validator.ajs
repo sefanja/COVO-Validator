@@ -1,6 +1,6 @@
 // COVO Validator - Bundled Version
-// Build Date: 2026-05-27 19:48:04 UTC
-// GitHub Commit: 456a0b9bd276040111c83ae2e1c6e11a468dd66d
+// Build Date: 2026-06-01 10:23:53 UTC
+// GitHub Commit: 41cfb95fe1a829ac50cf8117a8e176be761b14bd
 
 var config = (function() {
 
@@ -16,18 +16,23 @@ var config = (function() {
     };
 
     const REL_TYPES = {
-        isRefinedBy: autoDetect('composition-relationship', 'aggregation-relationship'), // The chosen relationship type may only be used for refinement
-        coManifestsFor: 'serving-relationship'
+        isRefinedBy: 'composition-relationship',
+        affects: 'flow-relationship',
+        enablesWithCoManifestation: 'serving-relationship',
+        enablesWithoutCoManifestation: 'flow-relationship',
+        isBasedOn: 'association-relationship',
+        isPrincipalOf: 'serving-relationship',
+        canTransform: ELEMENT_TYPES.capability === 'business-function' && ELEMENT_TYPES.object === 'business-object' ? 'access-relationship' : 'association-relationship'
     }
 
     // ASSUMED RELATIONSHIP DIRECTIONS:
-    // refinement: from parent to child (e.g., composition or aggregation)
-    // affects: from predecessor to successor (e.g., flow)
-    // enables: from provider to consumer (e.g., flow)
-    // coManifestsFor: from provider to consumer (e.g., triggering)
-    // isBasedOn: from depender to dependee (e.g., directed association)
-    // principal: from capability to value stream (e.g., serving)
-    // transforms: from capability to object (e.g., access or directed association)
+    // refinement: from parent to child
+    // affects: from predecessor to successor
+    // enablesWithCoManifestation: from provider to consumer
+    // enablesWithoutCoManifestation: from provider to consumer
+    // isBasedOn: from depender to dependee
+    // isPrincipalOf: from capability to value stream
+    // canTransform: from capability to object
 
     const VIOLATION_EXAMPLES = 5;
 
@@ -419,20 +424,21 @@ var utils = (function() {
         const rawRelationships = getUniqueConcepts(collection.filter('relationship'));
 
         const covoModel = {
-            concepts: _EMPTY.clone(),
-            elements: _EMPTY.clone(),
-            streams: _EMPTY.clone(),
+            concepts: _EMPTY.clone(), // union of elements and relationships
+            elements: _EMPTY.clone(), // union of capabilities, objects, streams
             capabilities: _EMPTY.clone(),
             objects: _EMPTY.clone(),
-            relationships: _EMPTY.clone(),
-            horizontalRelationships: _EMPTY.clone(),
-            isRefinedBy: _EMPTY.clone(),
+            streams: _EMPTY.clone(),
+            relationships: _EMPTY.clone(), // union of vertical and horizontal relationships
+            isRefinedBy: _EMPTY.clone(), // vertical relationship
+            horizontalRelationships: _EMPTY.clone(), // union of:
             affects: _EMPTY.clone(),
-            enables: _EMPTY.clone(),
-            coManifestsFor: _EMPTY.clone(),
+            enables: _EMPTY.clone(), // union of these two:
+            enablesWithCoManifestation: _EMPTY.clone(),
+            enablesWithoutCoManifestation: _EMPTY.clone(),
             isBasedOn: _EMPTY.clone(),
             isPrincipalOf: _EMPTY.clone(),
-            transforms: _EMPTY.clone()
+            canTransform: _EMPTY.clone()
         };
 
         const configuredElementTypes = Object.entries(config.ELEMENT_TYPES).map(([_, v]) => v);
@@ -442,9 +448,9 @@ var utils = (function() {
             covoModel.concepts.add(e);
             covoModel.elements.add(e);
             switch (e.type) {
-                case config.ELEMENT_TYPES.stream: covoModel.streams.add(e); break;
                 case config.ELEMENT_TYPES.capability: covoModel.capabilities.add(e); break;
-                case config.ELEMENT_TYPES.object: covoModel.objects.add(e); break
+                case config.ELEMENT_TYPES.object: covoModel.objects.add(e); break;
+                case config.ELEMENT_TYPES.stream: covoModel.streams.add(e); break;
             }
         });
 
@@ -461,15 +467,22 @@ var utils = (function() {
                 const t = r.target.type;
                 if (s === t) {
                     switch (s) {
-                        case config.ELEMENT_TYPES.stream: covoModel.affects.add(r); break;
-                        case config.ELEMENT_TYPES.capability: covoModel.enables.add(r);
-                            if (r.type === config.REL_TYPES.coManifestsFor) covoModel.coManifestsFor.add(r); break;
-                        case config.ELEMENT_TYPES.object: covoModel.isBasedOn.add(r); break;
+                        case config.ELEMENT_TYPES.capability:
+                            covoModel.enables.add(r);
+                            if (r.type === config.REL_TYPES.enablesWithCoManifestation) covoModel.enablesWithCoManifestation.add(r);
+                            if (r.type === config.REL_TYPES.enablesWithoutCoManifestation) covoModel.enablesWithoutCoManifestation.add(r);
+                            break;
+                        case config.ELEMENT_TYPES.object:
+                            if(r.type === config.REL_TYPES.isBasedOn) covoModel.isBasedOn.add(r);
+                            break;
+                        case config.ELEMENT_TYPES.stream:
+                            if(r.type === config.REL_TYPES.affects) covoModel.affects.add(r);
+                            break;
                     }
-                } else if (s === config.ELEMENT_TYPES.capability && t === config.ELEMENT_TYPES.stream) {
-                    covoModel.isPrincipalOf.add(r);
                 } else if (s === config.ELEMENT_TYPES.capability && t === config.ELEMENT_TYPES.object) {
-                    covoModel.transforms.add(r);
+                    if (r.type === config.REL_TYPES.canTransform) covoModel.canTransform.add(r);
+                } else if (s === config.ELEMENT_TYPES.capability && t === config.ELEMENT_TYPES.stream) {
+                    if (r.type === config.REL_TYPES.isPrincipalOf) covoModel.isPrincipalOf.add(r);
                 }
             }
         });
@@ -676,6 +689,21 @@ var constraints = (function() {
 
     return [
         {
+            id: 'M01',
+            validate: function(covoModel) {
+                const illegalVertical = covoModel.isRefinedBy.filter(r => r.source.type !== r.target.type);
+                const illegalHorizontal = covoModel.horizontalRelationships.clone()
+                    .not(covoModel.affects)
+                    .not(covoModel.enablesWithCoManifestation)
+                    .not(covoModel.enablesWithoutCoManifestation)
+                    .not(covoModel.isBasedOn)
+                    .not(covoModel.isPrincipalOf)
+                    .not(covoModel.canTransform);
+                return illegalVertical.add(illegalHorizontal);
+            },
+            describe: 'Illegal relationship type'
+        },
+        {
             id: 'C01',
             validate: function(covoModel) {
                 return covoModel.elements.filter(utils.hasMultipleParents);
@@ -749,7 +777,7 @@ var constraints = (function() {
                     return covoModel.horizontalRelationships.filter(pR =>
                         pR.source.id === pSrc.id
                         && pR.target.id === pTgt.id
-                        && (r.type !== config.REL_TYPES.coManifestsFor || r.type === pR.type)
+                        && (r.type !== config.REL_TYPES.enablesWithCoManifestation || r.type === pR.type)
                     ).size() === 0;
                 });
             },
@@ -785,11 +813,11 @@ var constraints = (function() {
                 // DETERMINE SCOPE
                 let scope = covoModel.capabilities.clone();
 
-                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.transforms));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.canTransform));
 
                 // IDENTIFY VIOLATIONS
                 return scope.filter(e => {
-                    const objectCount = utils.getTargets(e, covoModel.transforms).size();
+                    const objectCount = utils.getTargets(e, covoModel.canTransform).size();
                     return utils.isLeaf(e) ? (objectCount < 1) : (objectCount !== 1);
                 });
             },
@@ -801,11 +829,11 @@ var constraints = (function() {
                 // DETERMINE SCOPE
                 let scope = covoModel.objects.clone();
 
-                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.transforms));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.canTransform));
 
                 // IDENTIFY VIOLATIONS
                 return scope.filter(e => {
-                    const capabilityCount = utils.getSources(e, covoModel.transforms).size();
+                    const capabilityCount = utils.getSources(e, covoModel.canTransform).size();
                     return utils.isLeaf(e) ? (capabilityCount < 1) : (capabilityCount !== 1);
                 });
             },
@@ -818,11 +846,11 @@ var constraints = (function() {
                 let scope = covoModel.capabilities.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.enables, covoModel.isPrincipalOf));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.enablesWithCoManifestation, covoModel.isPrincipalOf));
                 }
 
                 // IDENTIFY VIOLATIONS
-                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enables.clone().add(covoModel.isPrincipalOf)));
+                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enablesWithCoManifestation.clone().add(covoModel.isPrincipalOf)));
             },
             describe: 'Not related to a value stream'
         },
@@ -862,13 +890,13 @@ var constraints = (function() {
                 let scope = covoModel.affects.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.isPrincipalOf, covoModel.transforms));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.isPrincipalOf, covoModel.canTransform));
                 }
 
                 // IDENTIFY VIOLATIONS
                 return scope.filter(r => {
-                    const sObj = utils.getTargets(utils.getSources(r.source, covoModel.isPrincipalOf), covoModel.transforms);
-                    const tObj = utils.getTargets(utils.getSources(r.target, covoModel.isPrincipalOf), covoModel.transforms);
+                    const sObj = utils.getTargets(utils.getSources(r.source, covoModel.isPrincipalOf), covoModel.canTransform);
+                    const tObj = utils.getTargets(utils.getSources(r.target, covoModel.isPrincipalOf), covoModel.canTransform);
                     return !utils.isOverlapping(sObj, tObj) && !utils.hasRelationship(tObj, sObj, covoModel.isBasedOn);
                 });
             },
@@ -881,13 +909,13 @@ var constraints = (function() {
                 let scope = covoModel.enables.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.transforms, covoModel.isBasedOn));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.canTransform, covoModel.isBasedOn));
                 }
 
                 // IDENTIFY VIOLATIONS
                 return scope.filter(r => {
-                    const sObj = utils.getTargets(r.source, covoModel.transforms);
-                    const tObj = utils.getTargets(r.target, covoModel.transforms);
+                    const sObj = utils.getTargets(r.source, covoModel.canTransform);
+                    const tObj = utils.getTargets(r.target, covoModel.canTransform);
                     return !utils.isOverlapping(sObj, tObj) && !utils.hasRelationship(tObj, sObj, covoModel.isBasedOn);
                 });
             },
@@ -900,13 +928,13 @@ var constraints = (function() {
                 let scope = covoModel.isBasedOn.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.transforms, covoModel.enables, covoModel.isPrincipalOf, covoModel.affects));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.canTransform, covoModel.enables, covoModel.isPrincipalOf, covoModel.affects));
                 }
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(r => {
-                    const srcCaps = utils.getSources(r.source, covoModel.transforms);
-                    const tgtCaps = utils.getSources(r.target, covoModel.transforms);
+                    const srcCaps = utils.getSources(r.source, covoModel.canTransform);
+                    const tgtCaps = utils.getSources(r.target, covoModel.canTransform);
                     if (utils.isOverlapping(srcCaps, tgtCaps)) return false ; // (1) same capability
 
                     const enabledCaps = utils.getTargets(tgtCaps, covoModel.enables);
@@ -1052,7 +1080,7 @@ var constraints = (function() {
     const valueStreamsCovoModel = utils.buildCovoModel(valueStreamViews.find().add(topLevelViews.find()));
 
     // Global validation
-    for (const constraint of constraints.filter(r => ['C01', 'C02', 'C03'].includes(r.id)))
+    for (const constraint of constraints.filter(r => ['M01', 'C01', 'C02', 'C03'].includes(r.id)))
         rememberFailures(null, constraint, constraint.validate(globalCovoModel));
 
     // Validate top-level views
@@ -1127,8 +1155,9 @@ var constraints = (function() {
     console.log(` - ${views.size()} views`);
     console.log(` - ${globalCovoModel.elements.size()} elements (${utils.formatType(config.ELEMENT_TYPES.stream)}, ${utils.formatType(config.ELEMENT_TYPES.capability)}, ${utils.formatType(config.ELEMENT_TYPES.object)})`);
     console.log(` - ${globalCovoModel.horizontalRelationships.size()} horizontal relationships`);
-    console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships (${utils.formatType(config.REL_TYPES.isRefinedBy)})`);
+    console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships`);
     console.log();
+
     if (violationCounts.size > 0) {
         console.log('VIOLATION SUMMARY:');
         Array.from(violationCounts).sort((a, b) => a[0].localeCompare(b[0])).forEach(([id, count]) =>
