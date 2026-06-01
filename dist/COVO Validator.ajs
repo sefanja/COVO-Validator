@@ -1,6 +1,6 @@
 // COVO Validator - Bundled Version
-// Build Date: 2026-06-01 10:23:53 UTC
-// GitHub Commit: 41cfb95fe1a829ac50cf8117a8e176be761b14bd
+// Build Date: 2026-06-01 20:41:44 UTC
+// GitHub Commit: 56c50aa6c24aacf011856fd389317bca5e86554a
 
 var config = (function() {
 
@@ -12,7 +12,7 @@ var config = (function() {
     const ELEMENT_TYPES = {
         stream: autoDetect('value-stream', 'business-process'),
         capability: autoDetect('capability', 'business-function'),
-        object: autoDetect('resource', 'business-object')
+        object: 'business-object'
     };
 
     const REL_TYPES = {
@@ -22,11 +22,11 @@ var config = (function() {
         enablesWithoutCoManifestation: 'flow-relationship',
         isBasedOn: 'association-relationship',
         isPrincipalOf: 'serving-relationship',
-        canTransform: ELEMENT_TYPES.capability === 'business-function' && ELEMENT_TYPES.object === 'business-object' ? 'access-relationship' : 'association-relationship'
+        canTransform: ELEMENT_TYPES.capability === 'business-function' ? 'access-relationship' : 'association-relationship'
     }
 
     // ASSUMED RELATIONSHIP DIRECTIONS:
-    // refinement: from parent to child
+    // isRefinedBy: from parent to child
     // affects: from predecessor to successor
     // enablesWithCoManifestation: from provider to consumer
     // enablesWithoutCoManifestation: from provider to consumer
