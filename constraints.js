@@ -2,6 +2,21 @@ var constraints = (function() {
 
     return [
         {
+            id: 'M01',
+            validate: function(covoModel) {
+                const illegalVertical = covoModel.isRefinedBy.filter(r => r.source.type !== r.target.type);
+                const illegalHorizontal = covoModel.horizontalRelationships.clone()
+                    .not(covoModel.affects)
+                    .not(covoModel.enablesWithCoManifestation)
+                    .not(covoModel.enablesWithoutCoManifestation)
+                    .not(covoModel.isBasedOn)
+                    .not(covoModel.isPrincipalOf)
+                    .not(covoModel.canTransform);
+                return illegalVertical.add(illegalHorizontal);
+            },
+            describe: 'Illegal relationship type'
+        },
+        {
             id: 'C01',
             validate: function(covoModel) {
                 return covoModel.elements.filter(utils.hasMultipleParents);
@@ -75,7 +90,7 @@ var constraints = (function() {
                     return covoModel.horizontalRelationships.filter(pR =>
                         pR.source.id === pSrc.id
                         && pR.target.id === pTgt.id
-                        && (r.type !== config.REL_TYPES.coManifestsFor || r.type === pR.type)
+                        && (r.type !== config.REL_TYPES.enablesWithCoManifestation || r.type === pR.type)
                     ).size() === 0;
                 });
             },
@@ -111,11 +126,11 @@ var constraints = (function() {
                 // DETERMINE SCOPE
                 let scope = covoModel.capabilities.clone();
 
-                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.transforms));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.canTransform));
 
                 // IDENTIFY VIOLATIONS
                 return scope.filter(e => {
-                    const objectCount = utils.getTargets(e, covoModel.transforms).size();
+                    const objectCount = utils.getTargets(e, covoModel.canTransform).size();
                     return utils.isLeaf(e) ? (objectCount < 1) : (objectCount !== 1);
                 });
             },
@@ -127,11 +142,11 @@ var constraints = (function() {
                 // DETERMINE SCOPE
                 let scope = covoModel.objects.clone();
 
-                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.transforms));
+                if (!strict) scope = utils.filterByLevel(scope, utils.getLevels(covoModel.canTransform));
 
                 // IDENTIFY VIOLATIONS
                 return scope.filter(e => {
-                    const capabilityCount = utils.getSources(e, covoModel.transforms).size();
+                    const capabilityCount = utils.getSources(e, covoModel.canTransform).size();
                     return utils.isLeaf(e) ? (capabilityCount < 1) : (capabilityCount !== 1);
                 });
             },
@@ -144,11 +159,11 @@ var constraints = (function() {
                 let scope = covoModel.capabilities.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.enables, covoModel.isPrincipalOf));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.enablesWithCoManifestation, covoModel.isPrincipalOf));
                 }
 
                 // IDENTIFY VIOLATIONS
-                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enables.clone().add(covoModel.isPrincipalOf)));
+                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enablesWithCoManifestation.clone().add(covoModel.isPrincipalOf)));
             },
             describe: 'Not related to a value stream'
         },
@@ -188,13 +203,13 @@ var constraints = (function() {
                 let scope = covoModel.affects.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.isPrincipalOf, covoModel.transforms));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.isPrincipalOf, covoModel.canTransform));
                 }
 
                 // IDENTIFY VIOLATIONS
                 return scope.filter(r => {
-                    const sObj = utils.getTargets(utils.getSources(r.source, covoModel.isPrincipalOf), covoModel.transforms);
-                    const tObj = utils.getTargets(utils.getSources(r.target, covoModel.isPrincipalOf), covoModel.transforms);
+                    const sObj = utils.getTargets(utils.getSources(r.source, covoModel.isPrincipalOf), covoModel.canTransform);
+                    const tObj = utils.getTargets(utils.getSources(r.target, covoModel.isPrincipalOf), covoModel.canTransform);
                     return !utils.isOverlapping(sObj, tObj) && !utils.hasRelationship(tObj, sObj, covoModel.isBasedOn);
                 });
             },
@@ -207,13 +222,13 @@ var constraints = (function() {
                 let scope = covoModel.enables.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.transforms, covoModel.isBasedOn));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.canTransform, covoModel.isBasedOn));
                 }
 
                 // IDENTIFY VIOLATIONS
                 return scope.filter(r => {
-                    const sObj = utils.getTargets(r.source, covoModel.transforms);
-                    const tObj = utils.getTargets(r.target, covoModel.transforms);
+                    const sObj = utils.getTargets(r.source, covoModel.canTransform);
+                    const tObj = utils.getTargets(r.target, covoModel.canTransform);
                     return !utils.isOverlapping(sObj, tObj) && !utils.hasRelationship(tObj, sObj, covoModel.isBasedOn);
                 });
             },
@@ -226,13 +241,13 @@ var constraints = (function() {
                 let scope = covoModel.isBasedOn.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.transforms, covoModel.enables, covoModel.isPrincipalOf, covoModel.affects));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.canTransform, covoModel.enables, covoModel.isPrincipalOf, covoModel.affects));
                 }
 
                 // IDENTIFY VIOLATIONS
                 const violations = scope.filter(r => {
-                    const srcCaps = utils.getSources(r.source, covoModel.transforms);
-                    const tgtCaps = utils.getSources(r.target, covoModel.transforms);
+                    const srcCaps = utils.getSources(r.source, covoModel.canTransform);
+                    const tgtCaps = utils.getSources(r.target, covoModel.canTransform);
                     if (utils.isOverlapping(srcCaps, tgtCaps)) return false ; // (1) same capability
 
                     const enabledCaps = utils.getTargets(tgtCaps, covoModel.enables);

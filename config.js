@@ -12,18 +12,23 @@ var config = (function() {
     };
 
     const REL_TYPES = {
-        isRefinedBy: autoDetect('composition-relationship', 'aggregation-relationship'), // The chosen relationship type may only be used for refinement
-        coManifestsFor: 'serving-relationship'
+        isRefinedBy: 'composition-relationship',
+        affects: 'flow-relationship',
+        enablesWithCoManifestation: 'serving-relationship',
+        enablesWithoutCoManifestation: 'flow-relationship',
+        isBasedOn: 'association-relationship',
+        isPrincipalOf: 'serving-relationship',
+        canTransform: ELEMENT_TYPES.capability === 'business-function' && ELEMENT_TYPES.object === 'business-object' ? 'access-relationship' : 'association-relationship'
     }
 
     // ASSUMED RELATIONSHIP DIRECTIONS:
-    // refinement: from parent to child (e.g., composition or aggregation)
-    // affects: from predecessor to successor (e.g., flow)
-    // enables: from provider to consumer (e.g., flow)
-    // coManifestsFor: from provider to consumer (e.g., triggering)
-    // isBasedOn: from depender to dependee (e.g., directed association)
-    // principal: from capability to value stream (e.g., serving)
-    // transforms: from capability to object (e.g., access or directed association)
+    // refinement: from parent to child
+    // affects: from predecessor to successor
+    // enablesWithCoManifestation: from provider to consumer
+    // enablesWithoutCoManifestation: from provider to consumer
+    // isBasedOn: from depender to dependee
+    // isPrincipalOf: from capability to value stream
+    // canTransform: from capability to object
 
     const VIOLATION_EXAMPLES = 5;
 

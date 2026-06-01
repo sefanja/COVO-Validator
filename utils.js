@@ -379,20 +379,21 @@ var utils = (function() {
         const rawRelationships = getUniqueConcepts(collection.filter('relationship'));
 
         const covoModel = {
-            concepts: _EMPTY.clone(),
-            elements: _EMPTY.clone(),
-            streams: _EMPTY.clone(),
+            concepts: _EMPTY.clone(), // union of elements and relationships
+            elements: _EMPTY.clone(), // union of capabilities, objects, streams
             capabilities: _EMPTY.clone(),
             objects: _EMPTY.clone(),
-            relationships: _EMPTY.clone(),
-            horizontalRelationships: _EMPTY.clone(),
-            isRefinedBy: _EMPTY.clone(),
+            streams: _EMPTY.clone(),
+            relationships: _EMPTY.clone(), // union of vertical and horizontal relationships
+            isRefinedBy: _EMPTY.clone(), // vertical relationship
+            horizontalRelationships: _EMPTY.clone(), // union of:
             affects: _EMPTY.clone(),
-            enables: _EMPTY.clone(),
-            coManifestsFor: _EMPTY.clone(),
+            enables: _EMPTY.clone(), // union of these two:
+            enablesWithCoManifestation: _EMPTY.clone(),
+            enablesWithoutCoManifestation: _EMPTY.clone(),
             isBasedOn: _EMPTY.clone(),
             isPrincipalOf: _EMPTY.clone(),
-            transforms: _EMPTY.clone()
+            canTransform: _EMPTY.clone()
         };
 
         const configuredElementTypes = Object.entries(config.ELEMENT_TYPES).map(([_, v]) => v);
@@ -402,9 +403,9 @@ var utils = (function() {
             covoModel.concepts.add(e);
             covoModel.elements.add(e);
             switch (e.type) {
-                case config.ELEMENT_TYPES.stream: covoModel.streams.add(e); break;
                 case config.ELEMENT_TYPES.capability: covoModel.capabilities.add(e); break;
-                case config.ELEMENT_TYPES.object: covoModel.objects.add(e); break
+                case config.ELEMENT_TYPES.object: covoModel.objects.add(e); break;
+                case config.ELEMENT_TYPES.stream: covoModel.streams.add(e); break;
             }
         });
 
@@ -421,15 +422,22 @@ var utils = (function() {
                 const t = r.target.type;
                 if (s === t) {
                     switch (s) {
-                        case config.ELEMENT_TYPES.stream: covoModel.affects.add(r); break;
-                        case config.ELEMENT_TYPES.capability: covoModel.enables.add(r);
-                            if (r.type === config.REL_TYPES.coManifestsFor) covoModel.coManifestsFor.add(r); break;
-                        case config.ELEMENT_TYPES.object: covoModel.isBasedOn.add(r); break;
+                        case config.ELEMENT_TYPES.capability:
+                            covoModel.enables.add(r);
+                            if (r.type === config.REL_TYPES.enablesWithCoManifestation) covoModel.enablesWithCoManifestation.add(r);
+                            if (r.type === config.REL_TYPES.enablesWithoutCoManifestation) covoModel.enablesWithoutCoManifestation.add(r);
+                            break;
+                        case config.ELEMENT_TYPES.object:
+                            if(r.type === config.REL_TYPES.isBasedOn) covoModel.isBasedOn.add(r);
+                            break;
+                        case config.ELEMENT_TYPES.stream:
+                            if(r.type === config.REL_TYPES.affects) covoModel.affects.add(r);
+                            break;
                     }
-                } else if (s === config.ELEMENT_TYPES.capability && t === config.ELEMENT_TYPES.stream) {
-                    covoModel.isPrincipalOf.add(r);
                 } else if (s === config.ELEMENT_TYPES.capability && t === config.ELEMENT_TYPES.object) {
-                    covoModel.transforms.add(r);
+                    if (r.type === config.REL_TYPES.canTransform) covoModel.canTransform.add(r);
+                } else if (s === config.ELEMENT_TYPES.capability && t === config.ELEMENT_TYPES.stream) {
+                    if (r.type === config.REL_TYPES.isPrincipalOf) covoModel.isPrincipalOf.add(r);
                 }
             }
         });

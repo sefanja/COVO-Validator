@@ -2,7 +2,7 @@
 
 ## Automating Semantic Symmetry in Business Architecture Modeling
 
-The COVO Validator is a jArchi script designed to validate ArchiMate models against the [Capability-Object-Value Ontology (COVO)](https://ceur-ws.org/Vol-4171/paper_41.pdf). Building upon the original ontology, this tool implements a refined set of formal constraints (C1-13, V1-2) to establish semantic symmetry between organizational behavior (value streams and capabilities) and structure (objects).
+The COVO Validator is a jArchi script designed to validate ArchiMate models against the [Capability-Object-Value Ontology (COVO)](https://ceur-ws.org/Vol-4171/paper_41.pdf). Building upon the original ontology, this tool implements a refined set of formal constraints (C1-13, M1, V1-2) to establish clear capability boundaries.
 
 ## Key Features
 
@@ -63,7 +63,7 @@ SELECTION:
  - 6 views
  - 16 elements (Value Stream, Capability, Business Object)
  - 18 horizontal relationships
- - 12 vertical relationships (Composition Relationship)
+ - 12 vertical relationships
 
 VIOLATION SUMMARY:
  - C12: 1 violation
@@ -81,13 +81,21 @@ VIOLATION SUMMARY:
 Validation completed in 264 ms
 ```
 
-## Modeling Guidelines
+## Metamodel
 
-To ensure the COVO Validator correctly interprets your model, please follow these conventions:
+To ensure that the COVO Validator interprets your model correctly, use one of the following ArchiMate element and relationship types. Your chosen metamodel will be detected automatically.
 
-* **Vertical hierarchy**: For refinement between levels (e.g., L0 to L1), use only **Composition** or **Aggregation**. The validator treats these as structural refinement; avoid using them for horizontal dependencies.
-* **Co-manifestation**: To express that one capability is required concurrently by another (the *co-manifests for* relationship), use the **Serving** relationship. For standard *enablement* (where one capability creates a precondition for another, outside the scope of the current value stream stage), use any other relationship type (e.g., **Flow**).
-* **Horizontal dependencies**: All other relationship types (Triggering, Association, Realization, etc.) are automatically recognized and validated according to the COVO logic.
+### Strategy Layer
+
+ArchiMate does not have a passive structure element in its Strategy Layer to model COVO's _value object_. We therefore cross over into its Business Layer to use the Business Object. In this metamodel, the Business Object is intended to be at the same abstract and strategic level als the Capability.
+
+![Metamodel (Strategy Layer)](metamodel-strategy.svg)
+
+### Business Layer
+
+To support alternative metamodel choices, the COVO Validator also supports modeling in the Business Layer.
+
+![Metamodel (Business Layer)](metamodel-business.svg)
 
 ## Reference & Examples
 

@@ -94,7 +94,7 @@
     const valueStreamsCovoModel = utils.buildCovoModel(valueStreamViews.find().add(topLevelViews.find()));
 
     // Global validation
-    for (const constraint of constraints.filter(r => ['C01', 'C02', 'C03'].includes(r.id)))
+    for (const constraint of constraints.filter(r => ['M01', 'C01', 'C02', 'C03'].includes(r.id)))
         rememberFailures(null, constraint, constraint.validate(globalCovoModel));
 
     // Validate top-level views
@@ -169,8 +169,9 @@
     console.log(` - ${views.size()} views`);
     console.log(` - ${globalCovoModel.elements.size()} elements (${utils.formatType(config.ELEMENT_TYPES.stream)}, ${utils.formatType(config.ELEMENT_TYPES.capability)}, ${utils.formatType(config.ELEMENT_TYPES.object)})`);
     console.log(` - ${globalCovoModel.horizontalRelationships.size()} horizontal relationships`);
-    console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships (${utils.formatType(config.REL_TYPES.isRefinedBy)})`);
+    console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships`);
     console.log();
+
     if (violationCounts.size > 0) {
         console.log('VIOLATION SUMMARY:');
         Array.from(violationCounts).sort((a, b) => a[0].localeCompare(b[0])).forEach(([id, count]) =>
