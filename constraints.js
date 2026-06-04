@@ -163,7 +163,7 @@ var constraints = (function() {
                 }
 
                 // IDENTIFY VIOLATIONS
-                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enablesWithCoManifestation.clone().add(covoModel.isPrincipalOf)));
+                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enables.clone().add(covoModel.isPrincipalOf)));
             },
             describe: 'Not related to a value stream'
         },
