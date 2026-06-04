@@ -94,13 +94,13 @@
     const valueStreamsCovoModel = utils.buildCovoModel(valueStreamViews.find().add(topLevelViews.find()));
 
     // Global validation
-    for (const constraint of constraints.filter(r => ['M01', 'C01', 'C02', 'C03', 'C08'].includes(r.id)))
+    for (const constraint of constraints.filter(r => ['M01', 'C01', 'C02', 'C03', 'C06', 'C07', 'C08'].includes(r.id)))
         rememberFailures(null, constraint, constraint.validate(globalCovoModel, strict));
 
     // Validate top-level views
     for (const view of topLevelViews) {
         const covoModel = utils.buildCovoModel($(view).find());
-        for (const constraint of constraints.filter(r => ['C04', 'C05', 'C06', 'C07', 'C09', 'C10', 'C11', 'C12', 'C13'].includes(r.id)))
+        for (const constraint of constraints.filter(r => ['C04', 'C05', 'C09', 'C10', 'C11', 'C12', 'C13'].includes(r.id)))
             rememberFailures(view, constraint, constraint.validate(covoModel, strict));
     }
 
@@ -113,7 +113,7 @@
         const viewLevelMap = new Map();
         extendedViewCollection.each(v => viewLevelMap.set(v.id, utils.getMaxLevel(utils.getUniqueConcepts($(v).find('element')))));
 
-        for (const constraint of constraints.filter(r => ['C04', 'C05', 'C06', 'C07', 'C09', 'C10', 'C11', 'C12', 'C13'].includes(r.id))) {
+        for (const constraint of constraints.filter(r => ['C04', 'C05', 'C09', 'C10', 'C11', 'C12', 'C13'].includes(r.id))) {
             const violations = constraint.validate(['C04', 'C09'].includes(constraint.id) ? covoModelExtended : covoModel, strict);
             violations.each(viol => {
                 const violLevel = utils.getLevel(viol);
