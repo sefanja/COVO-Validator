@@ -1,28 +1,26 @@
 # COVO Validator for Archi
 
-## Automating Semantic Symmetry in Business Architecture Modeling
+The COVO Validator is a jArchi script designed to validate ArchiMate models against the [Capability-Object-Value Ontology (COVO)](https://ceur-ws.org/Vol-4171/paper_41.pdf) to establish clear capability boundaries.
 
-The COVO Validator is a jArchi script designed to validate ArchiMate models against the [Capability-Object-Value Ontology (COVO)](https://ceur-ws.org/Vol-4171/paper_41.pdf). Building upon the original ontology, this tool implements a refined set of formal constraints (C1-13, M1, V1-2) to establish clear capability boundaries.
+The script implements [COVO's constraints](https://github.com/sefanja/COVO/blob/main/v2/constraints.md) (C1-13), a metamodel check (M1) and two view completeness checks (V1-2).
 
 ## Key Features
 
 1. **Progressive validation workflow**. The tool supports the architect's natural workflow by offering two validation profiles:
-   * **Construction mode**: context-aware validation for work-in-progress.
+   * **Construction mode**: validation for work-in-progress.
    * **Audit mode**: strict validation for release candidates.
 
-2. **Heuristic view classification**. The tool analyzes the structural content of your views to automatically apply the correct validation logic:
+2. **Heuristic view classification**. The tool analyzes the content of your views to automatically apply the correct validation logic:
    * **Top-Level Views**: containing only top-level elements.
    * **Value Stream Views**: where all the stages belong to the same top-level value stream.
      * **Value Stream Collections**: group of value stream views that share a common top-level value stream.
      * **Value Stage Zones**: all elements on a value stream view that overlap horizontally with a lowest-level value stream stage.
    * **Object Domain Views**: consisting of a two-level structure with exactly one higher-level object and at least one relationship between objects.
-   * **Landscape Views**: all other views are assumed to provide complete overviews of one or more element types at a certain refinement level.
+   * **Landscape Views**: all other views are assumed to provide complete overviews of one or more element and relationship types at a certain refinement level.
 
    ![Validation scopes](scope.svg)
 
-3. **Dialect-agnostic (zero-config)**. Whether you use the Strategy Layer (Value Stream / Capability / Resource), the Business Layer (Business Process / Business Function / Business Object), or a mix, the tool automatically detects your modeling dialect and adjusts its internal logic accordingly.
-
-4. **Enterprise-grade performance**. Validates complex models (~1000 elements, ~100 views) in < 15 seconds.
+3. **Enterprise-grade performance**. Validates complex models (~1000 elements, ~100 views) in < 15 seconds.
 
 ## Prerequisites
 
@@ -87,9 +85,16 @@ To ensure that the COVO Validator interprets your model correctly, use one of th
 
 ### Strategy Layer
 
-ArchiMate does not have a passive structure element in its Strategy Layer to model COVO's _value object_. We therefore cross over into its Business Layer to use the Business Object. In this metamodel, the Business Object is intended to be at the same abstract and strategic level als the Capability.
+ArchiMate does not have a passive structure element in its Strategy Layer to model COVO's _value object_. We therefore cross over into its Business Layer to use the Business Object. In this metamodel, the Business Object is intended to be at the same abstraction and strategic level als the Capability.
 
 ![Metamodel (Strategy Layer)](metamodel-strategy.svg)
+
+For a better modeling experience in Archi when visually nesting an object inside a capability:
+
+1. Click on **Edit**, **Preferences**.
+2. Navigate to **Connections**, **ARM**.
+3. In **Relation types offered when creating new relations**, select: **Association relation**.
+4. Click **Apply and Close**.
 
 ### Business Layer
 
@@ -104,17 +109,6 @@ To see the COVO method applied in a large-scale, real-world environment within t
 * [**N2 Waardestroom C.A**](https://nbility.netbeheernederland.nl/review-2.4/?view=id-caad12a9fb99480c8037d509a0dbe0c2)
 
 This repository also includes a local [example.archimate](https://github.com/sefanja/COVO-Validator/blob/main/example.archimate) file, which serves as a sandbox for testing the validator's constraints.
-
-### Capability-to-Object Access
-
-By default, ArchiMate does not allow the *Access* relationship between a Capability and a Business Object. You have two options to model this link:
-
-1. **Business**: Substitute the strategy elements with **Business Process**, **Business Function**, and **Business Object**.
-2. **Strategy**: Use an **association relationship** from **Capability** to **Business Object** and visually nest the object inside the capability. For a better modeling experience in Archi:
-   1. Click on **Edit**, **Preferences**.
-   2. Navigate to **Connections**, **ARM**.
-   3. In **Relation types offered when creating new relations**, select: **Association relation**.
-   4. Click **Apply and Close**.
 
 ## Project Structure
 

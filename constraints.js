@@ -1,4 +1,5 @@
 var constraints = (function() {
+    const _EMPTY = $(); // cloning this collection is significanlty faster than creating a new one with $()
 
     return [
         {
@@ -41,7 +42,7 @@ var constraints = (function() {
         },
         {
             id: 'C04',
-            validate: function(covoModel, strict = true) {
+            validate: function(covoModel, strict) {
                 // DETERMINE SCOPE
                 let scope = covoModel.horizontalRelationships.filter(r =>
                     !(r.source.type === config.ELEMENT_TYPES.object && r.target.type === config.ELEMENT_TYPES.object) // exclude objects
@@ -98,7 +99,7 @@ var constraints = (function() {
         },
         {
             id: 'C05',
-            validate: function(covoModel, strict = true) {
+            validate: function(covoModel, strict) {
                 // DETERMINE SCOPE
                 let scope = covoModel.horizontalRelationships.clone();
 
@@ -122,7 +123,7 @@ var constraints = (function() {
         },
         {
             id: 'C06',
-            validate: function(covoModel, strict = true) {
+            validate: function(covoModel, strict) {
                 // DETERMINE SCOPE
                 let scope = covoModel.capabilities.clone();
 
@@ -138,7 +139,7 @@ var constraints = (function() {
         },
         {
             id: 'C07',
-            validate: function(covoModel, strict = true) {
+            validate: function(covoModel, strict) {
                 // DETERMINE SCOPE
                 let scope = covoModel.objects.clone();
 
@@ -154,22 +155,20 @@ var constraints = (function() {
         },
         {
             id: 'C08',
-            validate: function(covoModel, strict = true) {
+            validate: function(covoModel, strict) {
                 // DETERMINE SCOPE
                 let scope = covoModel.capabilities.clone();
 
-                if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.enablesWithCoManifestation, covoModel.isPrincipalOf));
-                }
+                if (!strict) scope = _EMPTY.clone();
 
                 // IDENTIFY VIOLATIONS
-                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enables.clone().add(covoModel.isPrincipalOf)));
+                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enablesWithCoManifestation.clone().add(covoModel.isPrincipalOf)));
             },
-            describe: 'Not related to a value stream'
+            describe: 'Not manifested by a value stream'
         },
         {
             id: 'C09',
-            validate: function(covoModel, strict = true) {
+            validate: function(covoModel, strict) {
                 // DETERMINE SCOPE
                 let scope = covoModel.streams.clone();
 
@@ -182,7 +181,7 @@ var constraints = (function() {
         },
         {
             id: 'C10',
-            validate: function(covoModel, strict = true) {
+            validate: function(covoModel, strict) {
                 // DETERMINE SCOPE
                 let scope = covoModel.capabilities.clone();
 
@@ -198,7 +197,7 @@ var constraints = (function() {
         },
         {
             id: 'C11',
-            validate: function(covoModel, strict = true) {
+            validate: function(covoModel, strict) {
                 // DETERMINE SCOPE
                 let scope = covoModel.affects.clone();
 
@@ -217,7 +216,7 @@ var constraints = (function() {
         },
         {
             id: 'C12',
-            validate: function(covoModel, strict = true) {
+            validate: function(covoModel, strict) {
                 // DETERMINE SCOPE
                 let scope = covoModel.enables.clone();
 
@@ -236,7 +235,7 @@ var constraints = (function() {
         },
         {
             id: 'C13',
-            validate: function(covoModel, strict = true) {
+            validate: function(covoModel, strict) {
                 // DETERMINE SCOPE
                 let scope = covoModel.isBasedOn.clone();
 
