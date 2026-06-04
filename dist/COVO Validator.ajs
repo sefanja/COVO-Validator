@@ -1,6 +1,6 @@
 // COVO Validator - Bundled Version
-// Build Date: 2026-06-01 20:41:44 UTC
-// GitHub Commit: 56c50aa6c24aacf011856fd389317bca5e86554a
+// Build Date: 2026-06-04 11:33:29 UTC
+// GitHub Commit: 247e2e47e312c751881dd8f9e01d906c91996146
 
 var config = (function() {
 
@@ -850,7 +850,7 @@ var constraints = (function() {
                 }
 
                 // IDENTIFY VIOLATIONS
-                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enablesWithCoManifestation.clone().add(covoModel.isPrincipalOf)));
+                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enables.clone().add(covoModel.isPrincipalOf)));
             },
             describe: 'Not related to a value stream'
         },
