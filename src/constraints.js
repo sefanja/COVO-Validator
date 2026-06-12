@@ -156,13 +156,13 @@ var constraints = (function() {
         {
             id: 'C08',
             validate: function(covoModel, strict) {
-                // DETERMINE SCOPE
-                let scope = covoModel.capabilities.clone();
-
-                if (!strict) scope = _EMPTY.clone();
-
-                // IDENTIFY VIOLATIONS
-                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enablesWithCoManifestation.clone().add(covoModel.isPrincipalOf)));
+                if (!strict) {
+                    return utils.filterByLevel(covoModel.capabilities, utils.getSharedLevels(covoModel.enables, covoModel.isPrincipalOf)) // scope
+                        .filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enables.clone().add(covoModel.isPrincipalOf))); //violations
+                } else {
+                    return covoModel.capabilities // scope
+                        .filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enablesWithCoManifestation.clone().add(covoModel.isPrincipalOf))); // violations
+                }
             },
             describe: 'Not manifested by a value stream'
         },

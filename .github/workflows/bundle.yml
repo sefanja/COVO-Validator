@@ -21,8 +21,8 @@ jobs:
           echo "// Build Date: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> "dist/COVO Validator.ajs"
           echo "// GitHub Commit: ${{ github.sha }}" >> "dist/COVO Validator.ajs"
           echo "" >> "dist/COVO Validator.ajs"
-          cat config.js utils.js constraints.js >> "dist/COVO Validator.ajs"
-          sed '/load(.*);/d' main.js >> "dist/COVO Validator.ajs"
+          cat src/config.js src/utils.js src/constraints.js >> "dist/COVO Validator.ajs"
+          sed '/load(.*);/d' src/main.js >> "dist/COVO Validator.ajs"
       - name: Commit and Push
         run: |
           git config --global user.name 'github-actions[bot]'

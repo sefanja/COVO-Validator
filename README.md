@@ -59,7 +59,7 @@ OVERALL STATUS: FAILED
 SELECTION:
  - AUDIT mode
  - 6 views
- - 16 elements (Value Stream, Capability, Business Object)
+ - 16 elements
  - 18 horizontal relationships
  - 12 vertical relationships
 
