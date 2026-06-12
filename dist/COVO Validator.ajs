@@ -1,6 +1,6 @@
 // COVO Validator - Bundled Version
-// Build Date: 2026-06-04 22:38:11 UTC
-// GitHub Commit: 403a2ae1b66eec96b107acfd58d787dce02e8be8
+// Build Date: 2026-06-12 13:33:00 UTC
+// GitHub Commit: 3d6e5938e1e536c7663e53c0c027941a3b5ec3f0
 
 var config = (function() {
 
@@ -117,7 +117,9 @@ var utils = (function() {
     const childrenCache = {};
     const levelCache = {};
 
-    // Fill the cache
+    // Fill the cache.
+    // Only for hierarchical relationship do we ignore the user selection and look at
+    // the entire 'model' to accurately determine common ancestors and element depth.
     model.find(config.REL_TYPES.isRefinedBy).each(r => {
         const parent = r.source;
         const child = r.target;
@@ -126,7 +128,11 @@ var utils = (function() {
         parentsCache[child.id].add(parent);
         childrenCache[parent.id].add(child);
     });
-    // Cutoff childrenCache below the selected level
+    // Cutoff childrenCache below the selected level.
+    // While we need to consider the entire 'model' when looking upwards, we do not
+    // look down the hierarchy. As a side effect, constraints that exempt leaf-level
+    // elements may be applied too loosely when the user does not include lower-level
+    // views in his selection.
     const selectedLevel = getMaxLevel(getUniqueConcepts(selection.find('element')));
     for (const [parentId, children] of Object.entries(childrenCache))
         if (getLevel(children.first()) > selectedLevel)
@@ -843,13 +849,13 @@ var constraints = (function() {
         {
             id: 'C08',
             validate: function(covoModel, strict) {
-                // DETERMINE SCOPE
-                let scope = covoModel.capabilities.clone();
-
-                if (!strict) scope = _EMPTY.clone();
-
-                // IDENTIFY VIOLATIONS
-                return scope.filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enablesWithCoManifestation.clone().add(covoModel.isPrincipalOf)));
+                if (!strict) {
+                    return utils.filterByLevel(covoModel.capabilities, utils.getSharedLevels(covoModel.enables, covoModel.isPrincipalOf)) // scope
+                        .filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enables.clone().add(covoModel.isPrincipalOf))); //violations
+                } else {
+                    return covoModel.capabilities // scope
+                        .filter(e => !utils.canReach(e, config.ELEMENT_TYPES.stream, covoModel.enablesWithCoManifestation.clone().add(covoModel.isPrincipalOf))); // violations
+                }
             },
             describe: 'Not manifested by a value stream'
         },
@@ -1152,7 +1158,7 @@ var constraints = (function() {
     console.log('SELECTION:');
     console.log(` - ${strict ? 'AUDIT' : 'CONSTRUCTION'} mode`);
     console.log(` - ${views.size()} views`);
-    console.log(` - ${globalCovoModel.elements.size()} elements (${utils.formatType(config.ELEMENT_TYPES.stream)}, ${utils.formatType(config.ELEMENT_TYPES.capability)}, ${utils.formatType(config.ELEMENT_TYPES.object)})`);
+    console.log(` - ${globalCovoModel.elements.size()} elements`);
     console.log(` - ${globalCovoModel.horizontalRelationships.size()} horizontal relationships`);
     console.log(` - ${globalCovoModel.isRefinedBy.size()} vertical relationships`);
     console.log();
