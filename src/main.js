@@ -55,10 +55,10 @@
 
     // --- CLASSIFY VIEWS ---
     const topLevelViews = _EMPTY.clone();
-    const landscapeViews = _EMPTY.clone();
-    const objectDomainViews = _EMPTY.clone();
     const valueStreamViews = _EMPTY.clone();
     const valueStreamViewCollections = {};
+    const decompositionViews = _EMPTY.clone();
+    const dependencyViews = _EMPTY.clone();
     const viewMetadata = new Map();
 
     views.each(view => {
@@ -76,12 +76,12 @@
             valueStreamViewCollections[id].add(view);
             valueStreamViews.add(view);
             viewType = 'Value Stream View';
-        } else if (utils.identifyDomainHeader(covoModel)) {
-            objectDomainViews.add(view);
-            viewType = 'Object Domain View';
+        } else if (covoModel.isRefinedBy.size() > 0) {
+            decompositionViews.add(view);
+            viewType = 'Decomposition View';
         } else {
-            landscapeViews.add(view);
-            viewType = 'Landscape View';
+            dependencyViews.add(view);
+            viewType = 'Dependency View';
         }
 
         viewMetadata.set(view.id, viewType);
@@ -129,30 +129,24 @@
         }
     }
 
-    // Validate object domain views
-    for (const domainView of objectDomainViews) {
-        const covoModel = utils.buildCovoModel($(domainView).find());
+    // Validate overviews
+    for (const overView of decompositionViews.clone().add(dependencyViews)) {
+        const covoModel = utils.buildCovoModel($(overView).find());
 
         // Construct reference context
-        const domainHeader = utils.identifyDomainHeader(covoModel);
-        const headerLevel = utils.getLevel(domainHeader);
-        const maxLevel = utils.getMaxLevel(covoModel.objects);
-        let domainObjects = $(domainHeader);
-        for (let i = 0; i < maxLevel - headerLevel; i++)
-            domainObjects = utils.getChildren(domainObjects);
-        const domainIsBasedOn = domainObjects.rels().filter(r => r.type !== config.REL_TYPES.isRefinedBy && r.source.type === config.ELEMENT_TYPES.object && r.target.type === config.ELEMENT_TYPES.object); // all rels in the entire model between and with domain objects
-        const collectionIsBasedOn = utils.getIntersection(valueStreamsCovoModel.isBasedOn, domainIsBasedOn); // rels scoped back to value stream and top-level views (what you select is what you get)
-        const referenceContext = utils.buildCovoModel($(domainHeader).add(collectionIsBasedOn).add(collectionIsBasedOn.ends()));
+        const minLevel = utils.getMinLevel(covoModel.elements);
+        const maxLevel = utils.getMaxLevel(covoModel.elements);
+        let domainElements = utils.getAncestors(covoModel.elements);
+        for (let i = 0; i < maxLevel - minLevel; i++)
+            domainElements = utils.getChildren(domainElements);
+        const domainRelationships = domainElements.rels().filter(r => r.type !== config.REL_TYPES.isRefinedBy &&
+            (decompositionViews.filter(v => v.id === overView.id).size() === 0 || r.source.type !== r.target.type));
+        const domainNeighbors = domainRelationships.ends();
+        const domainConcepts = domainElements.clone().add(domainRelationships).add(domainNeighbors);
+        const referenceContext = utils.buildCovoModel(utils.getIntersection(valueStreamsCovoModel.concepts, domainConcepts));
 
-        for (const constraint of constraints.filter(r => ['V01', 'V02'].includes(r.id)))
-            rememberFailures(domainView, constraint, constraint.validate(covoModel, referenceContext));
-    }
-
-    // Validate landscape Views
-    for (const landscapeView of landscapeViews) {
-        const covoModel = utils.buildCovoModel($(landscapeView).find());
         for (const constraint of constraints.filter(r => ['V01', 'V02'].includes(r.id))) 
-            rememberFailures(landscapeView, constraint, constraint.validate(covoModel, valueStreamsCovoModel));
+            rememberFailures(overView, constraint, constraint.validate(covoModel, referenceContext));
     }
 
     // --- REPORT GENERATION ---

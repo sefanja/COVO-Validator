@@ -219,6 +219,15 @@ var utils = (function() {
     }
 
     /**
+     * Returns the minimum level in a collection of concepts.
+     * @param {jArchiCollection|ArchiMateConcept} concepts
+     * @returns 
+     */
+    function getMinLevel(concepts) {
+        return Math.min(...getLevels(concepts));
+    }
+
+    /**
      * Returns the maximum level in a collection of concepts.
      * @param {jArchiCollection|ArchiMateConcept} concepts
      * @returns 
@@ -264,6 +273,16 @@ var utils = (function() {
             }
         }
         return dominantDepth;
+    }
+
+    /**
+     * Determines the highest-level elements in a collection.
+     * @param {jArchiCollection} elements
+     * @returns {jArchiCollection} The identified highest-level elements.
+     */
+    function getAncestors(elements) {
+        const minLevel = getMinLevel(elements);
+        return elements.filter(e => getLevel(e) === minLevel);
     }
 
     // --- HORIZONTAL RELATIONSHIPS ---
@@ -452,19 +471,6 @@ var utils = (function() {
     }
 
     /**
-     * Heuristic for identifying an Object Domain View and returning the domain header.
-     * Criteria: Exactly two abstraction levels present, with a single dominant 'Domain Object' at the top level.
-     * @param {Object} covoModel - The COVO model of the view.
-     * @returns {ArchiMateElement|undefined} The identified Domain Header concept (high-level object).
-     */
-    function identifyDomainHeader(covoModel) {
-        const levels = getLevels(covoModel.objects);
-        const minLevel = Math.min(...getLevels(covoModel.objects));
-        const highestObjects = covoModel.objects.filter(e => getLevel(e) === minLevel);
-        if (covoModel.isBasedOn.size() > 0 && levels.size === 2 && highestObjects.size() === 1) return highestObjects.first();
-    }
-
-    /**
      * Returns the singular top-level value stream if present in the COVO model.
      * @param {Object} covoModel
      * @returns {ArchiMateElement|undefined}
@@ -621,9 +627,11 @@ var utils = (function() {
         getRoots: getRoots,
         getLevel: getLevel,
         getLevels: getLevels,
+        getMinLevel: getMinLevel,
         getMaxLevel: getMaxLevel,
         getSharedLevels: getSharedLevels,
         getDominantDepth: getDominantDepth,
+        getAncestors: getAncestors,
 
         // Horizontal structure
         getSources: getSources,
@@ -635,7 +643,6 @@ var utils = (function() {
 
         // View & context
         buildCovoModel: buildCovoModel,
-        identifyDomainHeader: identifyDomainHeader,
         getTopValueStream: getTopValueStream,
         getValueStageZones: getValueStageZones,
 

@@ -15,12 +15,12 @@ The script implements [COVO's constraints](https://github.com/sefanja/COVO/blob/
    * **Value Stream Views**: where all the stages belong to the same top-level value stream.
      * **Value Stream Collections**: group of value stream views that share a common top-level value stream.
      * **Value Stage Zones**: all elements on a value stream view that overlap horizontally with a lowest-level value stream stage.
-   * **Object Domain Views**: consisting of a two-level structure with exactly one higher-level object and at least one relationship between objects.
-   * **Landscape Views**: all other views are assumed to provide complete overviews of one or more element and relationship types at a certain refinement level.
+   * **Decomposition Views**: having at least one composition relationship.
+   * **Dependency Views**: all other views are assumed to provide complete overviews of one or more element and relationship types at a certain decomposition level.
 
-   ![Validation scopes](scope.svg)
+   ![Validation scopes](scopes.svg)
 
-3. **Enterprise-grade performance**. Validates complex models (~1000 elements, ~100 views) in < 15 seconds.
+3. **Enterprise-grade performance**. Validates complex models (~1000 elements, ~100 views) in < 10 seconds.
 
 ## Prerequisites
 

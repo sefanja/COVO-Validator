@@ -13,7 +13,7 @@ var constraints = (function() {
                     .not(covoModel.isBasedOn)
                     .not(covoModel.isPrincipalOf)
                     .not(covoModel.canTransform);
-                return illegalVertical.add(illegalHorizontal);
+                return illegalVertical.clone().add(illegalHorizontal);
             },
             describe: 'Illegal relationship type'
         },
@@ -292,7 +292,12 @@ var constraints = (function() {
         {
             id: 'V02',
             validate: function(covoModel, referenceCovoModel) {
-                return covoModel.elements.clone().add(covoModel.horizontalRelationships).not(referenceCovoModel.concepts);
+                const maxLevel = utils.getMaxLevel(covoModel.elements);
+                const lowestElements = covoModel.elements.filter(e => utils.getLevel(e) === maxLevel);
+                const lowestRelationships = covoModel.horizontalRelationships.filter(r => utils.getLevel(r) === maxLevel);
+                const lowestConcepts = lowestElements.clone().add(lowestRelationships);
+
+                return lowestConcepts.not(referenceCovoModel.concepts);
             },
             describe: 'Not in any value stream view'
         }
