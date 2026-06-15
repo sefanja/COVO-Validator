@@ -100,7 +100,7 @@
     // Validate top-level views
     for (const view of topLevelViews) {
         const covoModel = utils.buildCovoModel($(view).find());
-        for (const constraint of constraints.filter(r => ['C04', 'C05', 'C09', 'C10', 'C11', 'C12', 'C13'].includes(r.id)))
+        for (const constraint of constraints.filter(r => ['C09', 'C10', 'C11', 'C12', 'C13'].includes(r.id)))
             rememberFailures(view, constraint, constraint.validate(covoModel, strict));
     }
 
