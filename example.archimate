@@ -180,7 +180,7 @@
         <bounds x="36" y="252" width="120" height="37"/>
       </child>
     </element>
-    <element xsi:type="archimate:ArchimateDiagramModel" name="L1 Capabilities" id="id-431900b24a9a48298c40e6ea358f96a7">
+    <element xsi:type="archimate:ArchimateDiagramModel" name="L1 Capability Hierarchy" id="id-431900b24a9a48298c40e6ea358f96a7">
       <child xsi:type="archimate:DiagramObject" id="id-85c54e06224c489c823ce547999e5b4b" fillColor="#ffffff" archimateElement="id-d2fff1c3164f42b89850deb6523673cb">
         <bounds x="12" y="12" width="169" height="373"/>
         <sourceConnection xsi:type="archimate:Connection" id="id-36f7fef8238a44ec9bcc20b0c17c6578" source="id-85c54e06224c489c823ce547999e5b4b" target="id-894bfeeace4b40a9a48dfaccf39cf2b5" archimateRelationship="id-aebfc158b6f04c98836f0ce9c70ee3c6"/>
@@ -229,7 +229,7 @@
 Note that this example is limited to L1, but in practice, these capabilities are further refined to Level 2 or 3 to reach operational granularity.</content>
       </child>
     </element>
-    <element xsi:type="archimate:ArchimateDiagramModel" name="L1 Object Domain O" id="id-f050c296c5964b6aafff461be0bc8a81">
+    <element xsi:type="archimate:ArchimateDiagramModel" name="L1 Object Dependencies" id="id-f050c296c5964b6aafff461be0bc8a81">
       <child xsi:type="archimate:DiagramObject" id="id-a4832061be804655b6e33ee41c1cb22c" textPosition="1" archimateElement="id-dfba8f17bb21440e8dd4d491581cfb9c">
         <bounds x="240" y="60" width="120" height="37"/>
         <sourceConnection xsi:type="archimate:Connection" id="id-981f717f617e452db131ad74a332532e" source="id-a4832061be804655b6e33ee41c1cb22c" target="id-69709ee9c25546d18c7522951c897c31" archimateRelationship="id-b550de749be04f91bc94d8f8a396164c"/>
@@ -253,7 +253,7 @@ Note that this example is limited to L1, but in practice, these capabilities are
         <content>This view provides a consolidated overview of all object relationships within the chosen object domain. COVO guarantees that these relationships are strictly derived from capability interactions in value creation.</content>
       </child>
     </element>
-    <element xsi:type="archimate:ArchimateDiagramModel" name="L1 Objects" id="id-af73790761e942fb996189f604d1307d">
+    <element xsi:type="archimate:ArchimateDiagramModel" name="L1 Object Hierarchy" id="id-af73790761e942fb996189f604d1307d">
       <child xsi:type="archimate:DiagramObject" id="id-4f23a8d8bd00459a89aaff6fba2b2096" fillColor="#ffffff" archimateElement="id-00566dd567934cfca82eecad980c8c06">
         <bounds x="12" y="12" width="145" height="229"/>
         <sourceConnection xsi:type="archimate:Connection" id="id-326810c48d3844bcb5fdde2c8bdd6285" source="id-4f23a8d8bd00459a89aaff6fba2b2096" target="id-5e05a4c4e35a41d39c92abf1f47b8c9a" archimateRelationship="id-03059e599d38426c899a8b590a304afe"/>
@@ -280,32 +280,32 @@ Note that this example is limited to L1, but in practice, these capabilities are
     </element>
     <element xsi:type="archimate:ArchimateDiagramModel" name="L0" id="id-3fe20f98d5344b2393ad64d422fbbd15">
       <child xsi:type="archimate:DiagramObject" id="id-d95c3ec7d23647f7addd060c3287174f" archimateElement="id-d2fff1c3164f42b89850deb6523673cb">
-        <bounds x="24" y="144" width="145" height="73"/>
+        <bounds x="24" y="12" width="145" height="73"/>
         <sourceConnection xsi:type="archimate:Connection" id="id-36c761d146354bf5a07c97d5d335d891" source="id-d95c3ec7d23647f7addd060c3287174f" target="id-acbce597031442389168bd35fdf467a8" archimateRelationship="id-d6360f0b57164464bcdd864adfff1300"/>
         <sourceConnection xsi:type="archimate:Connection" id="id-d6defe6cedf144f0a711f201a364e76a" source="id-d95c3ec7d23647f7addd060c3287174f" target="id-d06ee191685d46f0b7490dbb3830d287" archimateRelationship="id-85dfbe93a5fb43be895337fdbb941755">
-          <bendpoint startX="-84" startY="-12" endX="-84" endY="132"/>
-          <bendpoint startX="-84" startY="-144" endX="-84"/>
+          <bendpoint startX="-84" startY="12" endX="-84" endY="-72"/>
+          <bendpoint startX="-84" startY="84" endX="-84"/>
         </sourceConnection>
         <sourceConnection xsi:type="archimate:Connection" id="id-09c808e93797419cbcb2b2ebf72e0ad2" source="id-d95c3ec7d23647f7addd060c3287174f" target="id-1e097140e4c1419aa80b95542304cfa6" archimateRelationship="id-5f63dfe5f7f8493486f3562ff14a4dd6">
-          <bendpoint startX="-84" startY="-12" endX="-84" endY="72"/>
-          <bendpoint startX="-84" startY="-84" endX="-84"/>
+          <bendpoint startX="-84" startY="12" endX="-84" endY="-132"/>
+          <bendpoint startX="-84" startY="144" endX="-84"/>
         </sourceConnection>
         <child xsi:type="archimate:DiagramObject" id="id-acbce597031442389168bd35fdf467a8" targetConnections="id-36c761d146354bf5a07c97d5d335d891" textPosition="1" archimateElement="id-00566dd567934cfca82eecad980c8c06">
           <bounds x="12" y="36" width="120" height="25"/>
         </child>
       </child>
       <child xsi:type="archimate:DiagramObject" id="id-d06ee191685d46f0b7490dbb3830d287" targetConnections="id-d6defe6cedf144f0a711f201a364e76a" textPosition="1" archimateElement="id-aa9abb2c350f41379c81b75ffa0670b2">
-        <bounds x="24" y="12" width="145" height="49"/>
+        <bounds x="24" y="108" width="145" height="49"/>
       </child>
       <child xsi:type="archimate:DiagramObject" id="id-1e097140e4c1419aa80b95542304cfa6" targetConnections="id-09c808e93797419cbcb2b2ebf72e0ad2" textPosition="1" archimateElement="id-37014ef5f8da401ea41a14f9a4cc600e">
-        <bounds x="24" y="72" width="145" height="49"/>
+        <bounds x="24" y="168" width="145" height="49"/>
       </child>
       <child xsi:type="archimate:Note" id="id-3c5a2f8cb7c7443cb8e7d1be14b4792a" textAlignment="1">
-        <bounds x="180" y="12" width="325" height="109"/>
+        <bounds x="180" y="108" width="325" height="109"/>
         <content>Best practice: for each value stream, define the value proposition and the primary value-receiving stakeholder.</content>
       </child>
       <child xsi:type="archimate:Note" id="id-d8b31ec9a06d4d629370304e5d964387" textAlignment="1">
-        <bounds x="180" y="144" width="325" height="73"/>
+        <bounds x="180" y="12" width="325" height="73"/>
         <content>Mainstream frameworks typically do not model capabilities and objects at this highest level. However, COVO establishes a fractal pattern, allowing for consistent zooming across levels.</content>
       </child>
     </element>

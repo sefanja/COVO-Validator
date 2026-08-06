@@ -38,7 +38,7 @@ var constraints = (function() {
                 const dominantDepth = utils.getDominantDepth(leafs);
                 return leafs.filter(e => utils.getLevel(e) !== dominantDepth);
             },
-            describe: 'Leafs at a deviant refinement level'
+            describe: 'Leafs at a deviant level'
         },
         {
             id: 'C04',
@@ -177,7 +177,7 @@ var constraints = (function() {
                 // IDENTIFY VIOLATIONS
                 return scope.filter(e => utils.getSources(e, covoModel.isPrincipalOf).size() !== 1);
             },
-            describe: 'Linked to multiple capabilities'
+            describe: 'Linked to zero or multiple capabilities'
         },
         {
             id: 'C10',
