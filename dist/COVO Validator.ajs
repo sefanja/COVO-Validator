@@ -1,6 +1,6 @@
 // COVO Validator - Bundled Version
-// Build Date: 2026-06-15 12:05:02 UTC
-// GitHub Commit: fafad3091c68fbfe64d91da29bd880d5cad91800
+// Build Date: 2026-09-07 21:32:35 UTC
+// GitHub Commit: 0fca35818fcc283a179678c2fa3277443de9db3d
 
 var config = (function() {
 
@@ -738,7 +738,7 @@ var constraints = (function() {
                 const dominantDepth = utils.getDominantDepth(leafs);
                 return leafs.filter(e => utils.getLevel(e) !== dominantDepth);
             },
-            describe: 'Leafs at a deviant refinement level'
+            describe: 'Leafs at a deviant level'
         },
         {
             id: 'C04',
@@ -877,7 +877,7 @@ var constraints = (function() {
                 // IDENTIFY VIOLATIONS
                 return scope.filter(e => utils.getSources(e, covoModel.isPrincipalOf).size() !== 1);
             },
-            describe: 'Linked to multiple capabilities'
+            describe: 'Linked to zero or multiple capabilities'
         },
         {
             id: 'C10',
@@ -902,7 +902,7 @@ var constraints = (function() {
                 let scope = covoModel.affects.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.isPrincipalOf, covoModel.canTransform));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.isPrincipalOf, covoModel.canTransform, covoModel.isBasedOn));
                 }
 
                 // IDENTIFY VIOLATIONS
