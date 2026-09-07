@@ -202,7 +202,7 @@ var constraints = (function() {
                 let scope = covoModel.affects.clone();
 
                 if (!strict) {
-                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.isPrincipalOf, covoModel.canTransform));
+                    scope = utils.filterByLevel(scope, utils.getSharedLevels(covoModel.isPrincipalOf, covoModel.canTransform, covoModel.isBasedOn));
                 }
 
                 // IDENTIFY VIOLATIONS
